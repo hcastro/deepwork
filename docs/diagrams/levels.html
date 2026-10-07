@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="size" content="1000,500">
+<title>deepwork levels</title>
+<link rel="stylesheet" href="style.css">
+<script>if (new URLSearchParams(location.search).get('theme') === 'dark') document.documentElement.className = 'dark'</script>
+<style>
+  .big { font-size: 30px; font-weight: 700; }
+  .chip { font-size: 11.5px; font-weight: 600; }
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="500" viewBox="0 0 1000 500" role="img"
+     aria-label="Four levels, from solo to full. Each adds agents and rounds, has a hard cap on agent calls, and moves up only on evidence.">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--wire)"/></marker>
+  </defs>
+  <rect class="frame" x="0.5" y="0.5" width="999" height="499" rx="14"/>
+  <text class="k" x="28" y="38">LEVELS · START SMALL, MOVE UP ONLY ON EVIDENCE</text>
+
+  <!-- card template: x, accent -->
+  <g>
+    <rect x="28" y="54" width="214" height="262" rx="12" style="fill:var(--card);stroke:var(--line)"/>
+    <text class="h" x="44" y="82">Solo</text>
+    <text class="s" x="44" y="104">Your session alone, with a</text>
+    <text class="s" x="44" y="120">test that can fail in place</text>
+    <text class="big" x="44" y="168">0</text><text class="s" x="70" y="168">extra agent calls</text>
+    <rect x="44" y="184" width="96" height="22" rx="11" style="fill:var(--bg);stroke:var(--line)"/><text class="chip" x="56" y="199" style="fill:var(--ink-2)">no approval</text>
+    <line x1="44" y1="222" x2="226" y2="222" style="stroke:var(--line)"/>
+    <text class="k" x="44" y="244">MOVE UP WHEN</text>
+    <text class="s" x="44" y="264">No command decides a must</text>
+    <text class="s" x="44" y="280">criterion, or a solo result</text>
+    <text class="s" x="44" y="296">turned out wrong</text>
+  </g>
+  <g>
+    <rect x="272" y="54" width="214" height="262" rx="12" style="fill:var(--worker-soft);stroke:var(--worker)"/>
+    <text class="h" x="288" y="82">Pair</text>
+    <text class="s" x="288" y="104">1 worker, 1 runner and</text>
+    <text class="s" x="288" y="120">1 checker, for 2 rounds</text>
+    <text class="big" x="288" y="168">12</text><text class="s" x="326" y="168">calls at most</text>
+    <rect x="288" y="184" width="118" height="22" rx="11" style="fill:var(--bg);stroke:var(--worker)"/><text class="chip" x="300" y="199" style="fill:var(--worker)">one-line notice</text>
+    <line x1="288" y1="222" x2="470" y2="222" style="stroke:var(--worker);opacity:.35"/>
+    <text class="k" x="288" y="244">MOVE UP WHEN</text>
+    <text class="s" x="288" y="264">A checker says the approach</text>
+    <text class="s" x="288" y="280">is wrong, or several ideas</text>
+    <text class="s" x="288" y="296">compete with no quick test</text>
+  </g>
+  <g>
+    <rect x="516" y="54" width="214" height="262" rx="12" style="fill:var(--checker-soft);stroke:var(--checker)"/>
+    <text class="h" x="532" y="82">Team</text>
+    <text class="s" x="532" y="104">3 approaches, 2 rounds, a</text>
+    <text class="s" x="532" y="120">comparison and a break round</text>
+    <text class="big" x="532" y="168">41</text><text class="s" x="570" y="168">calls at most</text>
+    <rect x="532" y="184" width="156" height="22" rx="11" style="fill:var(--bg);stroke:var(--checker)"/><text class="chip" x="544" y="199" style="fill:var(--checker)">you approve the spend</text>
+    <line x1="532" y1="222" x2="714" y2="222" style="stroke:var(--checker);opacity:.35"/>
+    <text class="k" x="532" y="244">MOVE UP WHEN</text>
+    <text class="s" x="532" y="264">No result is confirmed, and</text>
+    <text class="s" x="532" y="280">the same objection keeps</text>
+    <text class="s" x="532" y="296">coming back</text>
+  </g>
+  <g>
+    <rect x="760" y="54" width="212" height="262" rx="12" style="fill:var(--orch-soft);stroke:var(--orch)"/>
+    <text class="h" x="776" y="82">Full</text>
+    <text class="s" x="776" y="104">4 approaches, 4 rounds, 2</text>
+    <text class="s" x="776" y="120">checkers each, a reviewer</text>
+    <text class="big" x="776" y="168">100</text><text class="s" x="832" y="168">calls at most</text>
+    <rect x="776" y="184" width="156" height="22" rx="11" style="fill:var(--bg);stroke:var(--orch)"/><text class="chip" x="788" y="199" style="fill:var(--orch)">you approve the spend</text>
+    <line x1="776" y1="222" x2="956" y2="222" style="stroke:var(--orch);opacity:.35"/>
+    <text class="k" x="776" y="244">THE TOP LEVEL</text>
+    <text class="s" x="776" y="264">Declined when nobody named</text>
+    <text class="s" x="776" y="280">in the problem can judge</text>
+    <text class="s" x="776" y="296">the result</text>
+  </g>
+  <!-- arrows between cards -->
+  <path class="wire" d="M244,185 H270" marker-end="url(#a)"/>
+  <path class="wire" d="M488,185 H514" marker-end="url(#a)"/>
+  <path class="wire" d="M732,185 H758" marker-end="url(#a)"/>
+
+  <!-- call caps chart: x(v) = 140 + v * 8.2 -->
+  <text class="k" x="28" y="356">HARD CAP ON AGENT CALLS</text>
+  <g>
+    <text class="s" x="124" y="386" text-anchor="end">Pair</text>
+    <rect x="140" y="374" width="98.4" height="16" rx="4" style="fill:var(--worker)"/><text class="t" x="246" y="387">12</text>
+    <text class="s" x="124" y="414" text-anchor="end">Team</text>
+    <rect x="140" y="402" width="336.2" height="16" rx="4" style="fill:var(--checker)"/><text class="t" x="484" y="415">41</text>
+    <text class="s" x="124" y="442" text-anchor="end">Full</text>
+    <rect x="140" y="430" width="820" height="16" rx="4" style="fill:var(--orch)"/>
+    <text class="t" x="952" y="443" text-anchor="end" style="fill:var(--bg)">100</text>
+  </g>
+  <text class="s" x="28" y="480">A call is one agent run. Before team or full, your session shows the cap and waits for your yes. Every number here is deepwork's own choice; none was measured.</text>
+</svg>
+</body>
+</html>

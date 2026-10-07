@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="size" content="1000,604">
+<title>How deepwork runs</title>
+<link rel="stylesheet" href="style.css">
+<script>if (new URLSearchParams(location.search).get('theme') === 'dark') document.documentElement.className = 'dark'</script>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="604" viewBox="0 0 1000 604" role="img"
+     aria-label="Your session gathers context and frames the problem with you, the orchestrator runs rounds by fixed rules, and you get a report. Every round is saved to the run folder.">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--wire)"/></marker>
+  </defs>
+  <rect class="frame" x="0.5" y="0.5" width="999" height="603" rx="14"/>
+
+  <!-- ===== Column A: before the run ===== -->
+  <text class="k" x="28" y="40">BEFORE THE RUN · YOUR SESSION</text>
+  <g>
+    <rect x="28" y="54" width="272" height="72" rx="10" style="fill:var(--you-soft);stroke:var(--you)"/>
+    <text class="t" x="44" y="78">1  Gather context</text>
+    <text class="s" x="44" y="97">Repo docs and runbooks, the knowledge</text>
+    <text class="s" x="44" y="113">base, tickets, prior work, dashboards</text>
+
+    <rect x="28" y="140" width="272" height="72" rx="10" style="fill:var(--you-soft);stroke:var(--you)"/>
+    <text class="t" x="44" y="164">2  Frame the problem with you</text>
+    <text class="s" x="44" y="183">What "done" means, starting approaches,</text>
+    <text class="s" x="44" y="199">the commands that decide it</text>
+
+    <rect x="28" y="226" width="272" height="72" rx="10" style="fill:var(--you-soft);stroke:var(--you)"/>
+    <text class="t" x="44" y="250">3  Pre-run checks</text>
+    <text class="s" x="44" y="269">Every must check fails on known-bad</text>
+    <text class="s" x="44" y="285">code, so it can prove something</text>
+
+    <rect x="28" y="312" width="272" height="72" rx="10" style="fill:var(--card);stroke:var(--ink-2);stroke-width:1.5"/>
+    <text class="t" x="44" y="336">4  You approve the budget</text>
+    <text class="s" x="44" y="355">A hard cap on agent calls, and an</text>
+    <text class="s" x="44" y="371">optional time budget</text>
+
+    <path class="wire" d="M164,126 V138" marker-end="url(#a)"/>
+    <path class="wire" d="M164,212 V224" marker-end="url(#a)"/>
+    <path class="wire" d="M164,298 V310" marker-end="url(#a)"/>
+  </g>
+
+  <!-- launch arrow -->
+  <path class="wire" d="M300,348 H336" marker-end="url(#a)"/>
+
+  <!-- ===== Column B: the loop ===== -->
+  <text class="k" x="342" y="40">THE LOOP · ORCHESTRATOR SCRIPT</text>
+  <rect x="342" y="54" width="364" height="330" rx="12" style="fill:var(--orch-soft);stroke:var(--orch)"/>
+  <text class="s" x="362" y="78">Fixed rules decide what runs and what passes.</text>
+
+  <g>
+    <rect x="362" y="92" width="290" height="38" rx="8" style="fill:var(--bg);stroke:var(--orch)"/>
+    <text class="t" x="378" y="116">Plan</text><text class="s" x="440" y="116">pick approaches for this round</text>
+
+    <rect x="362" y="142" width="290" height="38" rx="8" style="fill:var(--worker-soft);stroke:var(--worker)"/>
+    <text class="t" x="378" y="166">Work</text><text class="s" x="440" y="166">one worker per approach</text>
+
+    <rect x="362" y="192" width="290" height="38" rx="8" style="fill:var(--runner-soft);stroke:var(--runner)"/>
+    <text class="t" x="378" y="216">Run</text><text class="s" x="440" y="216">slow commands, output saved</text>
+
+    <rect x="362" y="242" width="290" height="38" rx="8" style="fill:var(--checker-soft);stroke:var(--checker)"/>
+    <text class="t" x="378" y="266">Check</text><text class="s" x="440" y="266">fresh agents, author hidden</text>
+
+    <rect x="362" y="292" width="290" height="38" rx="8" style="fill:var(--bg);stroke:var(--orch)"/>
+    <text class="t" x="378" y="316">Save</text><text class="s" x="440" y="316">state, ledger, every result</text>
+
+    <path class="wire" d="M507,130 V140" marker-end="url(#a)"/>
+    <path class="wire" d="M507,180 V190" marker-end="url(#a)"/>
+    <path class="wire" d="M507,230 V240" marker-end="url(#a)"/>
+    <path class="wire" d="M507,280 V290" marker-end="url(#a)"/>
+    <!-- next round -->
+    <path class="wire" d="M652,311 H680 V111 H654" marker-end="url(#a)"/>
+    <text class="s" x="668" y="206" transform="rotate(-90 668 206)" text-anchor="middle">next round</text>
+  </g>
+  <text class="s" x="362" y="360">Stops when a result is accepted, rounds or ideas run out,</text>
+  <text class="s" x="362" y="376">time runs out, or a question blocks all progress.</text>
+
+  <!-- stop arrow -->
+  <path class="wire" d="M706,180 H742" marker-end="url(#a)"/>
+  <text class="s" x="708" y="172">stops</text>
+
+  <!-- ===== Column C: after ===== -->
+  <text class="k" x="748" y="40">AFTER THE RUN · YOU</text>
+  <rect x="748" y="128" width="224" height="104" rx="10" style="fill:var(--file-soft);stroke:var(--file)"/>
+  <text class="t" x="764" y="152">report.md</text>
+  <text class="s" x="764" y="172">Needs you comes first, then</text>
+  <text class="s" x="764" y="188">the result, a ten-minute check,</text>
+  <text class="s" x="764" y="204">every criterion, and an audit</text>
+  <text class="s" x="764" y="220">by an agent that reran it</text>
+
+  <path class="wire" d="M860,232 V258" marker-end="url(#a)"/>
+  <rect x="748" y="260" width="224" height="88" rx="10" style="fill:var(--card);stroke:var(--ink-2);stroke-width:1.5"/>
+  <text class="t" x="764" y="284">You review</text>
+  <text class="s" x="764" y="304">Accept it, or change the</text>
+  <text class="s" x="764" y="320">problem and resume where</text>
+  <text class="s" x="764" y="336">the run left off</text>
+
+  <!-- ===== Run folder strip ===== -->
+  <g>
+    <rect x="28" y="462" width="148" height="56" rx="9" style="fill:var(--file-soft);stroke:var(--file)"/>
+    <text class="m" x="44" y="486">context.md</text><text class="s" x="44" y="505">what the team knew</text>
+    <rect x="188" y="462" width="148" height="56" rx="9" style="fill:var(--file-soft);stroke:var(--file)"/>
+    <text class="m" x="204" y="486">problem.md</text><text class="s" x="204" y="505">frozen by its hash</text>
+    <rect x="348" y="462" width="148" height="56" rx="9" style="fill:var(--file-soft);stroke:var(--file)"/>
+    <text class="m" x="364" y="486">ledger.md</text><text class="s" x="364" y="505">readable history</text>
+    <rect x="508" y="462" width="148" height="56" rx="9" style="fill:var(--file-soft);stroke:var(--file)"/>
+    <text class="m" x="524" y="486">state.json</text><text class="s" x="524" y="505">lets a run resume</text>
+    <rect x="668" y="462" width="148" height="56" rx="9" style="fill:var(--file-soft);stroke:var(--file)"/>
+    <text class="m" x="684" y="486">rounds/</text><text class="s" x="684" y="505">every agent's result</text>
+    <rect x="828" y="462" width="144" height="56" rx="9" style="fill:var(--file-soft);stroke:var(--file)"/>
+    <text class="m" x="844" y="486">report.md</text><text class="s" x="844" y="505">the deliverable</text>
+  </g>
+  <!-- writes -->
+  <path class="wire" d="M102,384 V460" style="stroke-dasharray:4 4" marker-end="url(#a)"/>
+  <path class="wire" d="M238,384 V460" style="stroke-dasharray:4 4" marker-end="url(#a)"/>
+  <path class="wire" d="M422,384 V460" style="stroke-dasharray:4 4" marker-end="url(#a)"/>
+  <path class="wire" d="M582,384 V460" style="stroke-dasharray:4 4" marker-end="url(#a)"/>
+  <path class="wire" d="M690,384 V460" style="stroke-dasharray:4 4" marker-end="url(#a)"/>
+
+  <text class="k" x="28" y="548">RUN FOLDER · OUTSIDE YOUR REPOS · SAVED AFTER EVERY ROUND</text>
+  <text class="s" x="28" y="576">Agents start with no memory. Each one reads context.md, problem.md and the ledger from disk, so a crash or a context reset loses nothing.</text>
+</svg>
+</body>
+</html>

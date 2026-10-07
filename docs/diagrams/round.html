@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="size" content="1000,604">
+<title>One deepwork round</title>
+<link rel="stylesheet" href="style.css">
+<script>if (new URLSearchParams(location.search).get('theme') === 'dark') document.documentElement.className = 'dark'</script>
+<style>
+  .bar-t { font-size: 12.5px; font-weight: 600; }
+  .lane { fill: var(--card); }
+  .num circle { fill: var(--ink); }
+  .num text { fill: var(--bg); font-size: 11.5px; font-weight: 700; }
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="604" viewBox="0 0 1000 604" role="img"
+     aria-label="Three attempts move through workers, runners and checkers at their own pace. Runners that need a quiet machine take turns, the others run alongside, and fixed rules decide the outcome at the end of the round.">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--wire)"/></marker>
+  </defs>
+  <rect class="frame" x="0.5" y="0.5" width="999" height="603" rx="14"/>
+
+  <text class="k" x="28" y="38">ONE ROUND · THREE ATTEMPTS</text>
+  <text class="k" x="972" y="38" text-anchor="end">TIME →</text>
+
+  <!-- lanes -->
+  <rect class="lane" x="20" y="54" width="960" height="96" rx="8"/>
+  <rect class="lane" x="20" y="158" width="960" height="96" rx="8"/>
+  <rect class="lane" x="20" y="262" width="960" height="96" rx="8"/>
+  <rect class="lane" x="20" y="366" width="960" height="56" rx="8"/>
+
+  <text class="t" x="36" y="88" style="fill:var(--worker)">Workers</text>
+  <text class="s" x="36" y="106">one per approach,</text><text class="s" x="36" y="122">each in its own worktree</text>
+  <text class="t" x="36" y="192" style="fill:var(--runner)">Runners</text>
+  <text class="s" x="36" y="210">slow commands at</text><text class="s" x="36" y="226">the attempt's commit</text>
+  <text class="t" x="36" y="296" style="fill:var(--checker)">Checkers</text>
+  <text class="s" x="36" y="314">fresh agents; the</text><text class="s" x="36" y="330">author stays hidden</text>
+  <text class="t" x="36" y="391" style="fill:var(--orch)">Orchestrator</text>
+  <text class="s" x="36" y="408">fixed rules</text>
+
+  <!-- workers -->
+  <rect x="190" y="64" width="210" height="24" rx="6" style="fill:var(--worker-soft);stroke:var(--worker)"/><text class="bar-t" x="200" y="81">C2.1  repairs approach A1</text>
+  <rect x="190" y="92" width="160" height="24" rx="6" style="fill:var(--worker-soft);stroke:var(--worker)"/><text class="bar-t" x="200" y="109">C2.2  tries A2</text>
+  <rect x="190" y="120" width="240" height="24" rx="6" style="fill:var(--worker-soft);stroke:var(--worker)"/><text class="bar-t" x="200" y="137">C2.3  tries W1, a worker's idea</text>
+
+  <!-- runners -->
+  <rect x="400" y="168" width="170" height="24" rx="6" style="fill:var(--runner-soft);stroke:var(--runner)"/><text class="bar-t" x="410" y="185">C2.1  benchmark</text>
+  <rect x="350" y="196" width="170" height="24" rx="6" style="fill:var(--runner-soft);stroke:var(--runner)"/><text class="bar-t" x="360" y="213">C2.2  full test suite</text>
+  <rect x="430" y="224" width="140" height="24" rx="6" style="fill:none;stroke:var(--runner);stroke-dasharray:4 4"/><text class="s" x="440" y="241" style="fill:var(--runner)">C2.3 waits its turn</text>
+  <rect x="570" y="224" width="150" height="24" rx="6" style="fill:var(--runner-soft);stroke:var(--runner)"/><text class="bar-t" x="580" y="241">C2.3  load run</text>
+  <path class="wire" d="M570,192 V222" style="stroke:var(--runner)" marker-end="url(#a)"/>
+
+  <!-- checkers -->
+  <rect x="570" y="272" width="110" height="24" rx="6" style="fill:var(--checker-soft);stroke:var(--checker)"/><text class="bar-t" x="580" y="289">checks C2.1</text>
+  <rect x="520" y="300" width="110" height="24" rx="6" style="fill:var(--checker-soft);stroke:var(--checker)"/><text class="bar-t" x="530" y="317">checks C2.2</text>
+  <rect x="720" y="328" width="110" height="24" rx="6" style="fill:var(--checker-soft);stroke:var(--checker)"/><text class="bar-t" x="730" y="345">checks C2.3</text>
+
+  <!-- orchestrator -->
+  <rect x="190" y="380" width="70" height="28" rx="6" style="fill:var(--orch-soft);stroke:var(--orch)"/><text class="bar-t" x="202" y="399">plan</text>
+  <rect x="842" y="380" width="128" height="28" rx="6" style="fill:var(--orch-soft);stroke:var(--orch)"/><text class="bar-t" x="852" y="399">decide · save</text>
+  <path class="wire" d="M830,340 H900 V378" style="stroke-dasharray:3 3" marker-end="url(#a)"/>
+
+  <!-- numbered callouts on the chart -->
+  <g class="num"><circle cx="418" cy="236" r="9"/><text x="418" y="240" text-anchor="middle">1</text></g>
+  <g class="num"><circle cx="532" cy="208" r="9"/><text x="532" y="212" text-anchor="middle">2</text></g>
+  <g class="num"><circle cx="692" cy="284" r="9"/><text x="692" y="288" text-anchor="middle">3</text></g>
+  <g class="num"><circle cx="828" cy="394" r="9"/><text x="828" y="398" text-anchor="middle">4</text></g>
+
+  <!-- legend, 2 x 2 -->
+  <line x1="28" y1="442" x2="972" y2="442" style="stroke:var(--line)"/>
+  <g class="num"><circle cx="40" cy="470" r="9"/><text x="40" y="474" text-anchor="middle">1</text></g>
+  <text class="t" x="58" y="475">Timing-sensitive runs take turns.</text>
+  <text class="s" x="58" y="493">Benchmarks and load runs need a quiet machine,</text>
+  <text class="s" x="58" y="509">so each waits for the one before it.</text>
+
+  <g class="num"><circle cx="520" cy="470" r="9"/><text x="520" y="474" text-anchor="middle">2</text></g>
+  <text class="t" x="538" y="475">Everything else runs alongside.</text>
+  <text class="s" x="538" y="493">A test suite's result doesn't depend on load,</text>
+  <text class="s" x="538" y="509">so it starts as soon as its worker finishes.</text>
+
+  <g class="num"><circle cx="40" cy="540" r="9"/><text x="40" y="544" text-anchor="middle">3</text></g>
+  <text class="t" x="58" y="545">Checkers judge from evidence.</text>
+  <text class="s" x="58" y="563">They rerun the quick checks themselves and</text>
+  <text class="s" x="58" y="579">read the runner's saved output.</text>
+
+  <g class="num"><circle cx="520" cy="540" r="9"/><text x="520" y="544" text-anchor="middle">4</text></g>
+  <text class="t" x="538" y="545">Fixed rules decide.</text>
+  <text class="s" x="538" y="563">After the last check, the script applies the pass</text>
+  <text class="s" x="538" y="579">rule, saves everything, and plans round 3.</text>
+</svg>
+</body>
+</html>
