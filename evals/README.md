@@ -126,3 +126,18 @@ Majors from the four verifiers of v2, and what changed. The fixture names start 
 | Pair docs said the second round is a repair | The planner runs an untried approach before a repair that met no must criterion, as fixture v2 order tests. The docs and the pair dry-run name now say so. |
 | Team and pair investigation had zero margin (40 of 40, 11 of 11) | Ceilings raised by one, to 41 and 12, and the selftest needs one spare call. Fixture: V3-9 checks worst case against ceiling. |
 | Dry runs and host runs left temp folders and worker worktrees | The host removes its worktrees and temp folder at the end; the selftest removes its repos and checks nothing stays. |
+
+## After the first real run (2026-10-05)
+
+A team-level research run on a web performance question, on Sonnet. It stopped after 26 of 41 calls with no candidate passed, about seven hours in. A single agent with the same brief, working in parallel, found more. These are the causes and what changed.
+
+| Issue | Change |
+|---|---|
+| Workers started with no team context: no knowledge-base notes, no runbooks, no ticket history or data sources, so they rediscovered facts or missed them | The session gathers `<run>/context.md` before framing, `args` refuses an empty one, and every prompt names it first. Selftest: args refuses a missing or template-only context pack. |
+| The run stopped on a worker's question its sources already answered (a traffic share that a dashboard and a config file held) | Workers check the context pack before asking, and only a question marked `question_blocking` stops the run. Others go to Needs you and to later workers. Fixtures: a blocking question stops; a non-blocking one does not. |
+| The file writer's Write call was refused, so `state.json` and `report.md` were never saved | The script builds a quoted-heredoc shell script and the file writer runs it through Bash. Selftest: the script writes every file byte for byte. |
+| 23 worker proposals sat unused with 15 calls left | Work rounds fill free slots with proposals, oldest first, after every `problem.md` approach: up to 2 per launch at team, 4 at full. Fixtures: team adopts proposals; pair never does; the per-launch limit holds. |
+| Every runner waited on one lock, so slow runs queued for hours | Only timing-sensitive runner work takes turns. Selftest: only timing-sensitive runner work takes the shared lock. |
+| Nothing bounded wall-clock time | `--time-budget-min`, a clock from reported or host-stamped `finished_at`, and a `time` stop before a round that would not fit. Fixtures: time; dry run with a time budget. |
+
+Not yet shown: that these fixes produce a better result. The next real run is a graded rerun of the same problem against the single agent's findings.
