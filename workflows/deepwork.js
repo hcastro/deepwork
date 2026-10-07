@@ -329,6 +329,20 @@ function reportCtx(st, cfg) {
     stop: st.stop ? st.stop.reason : 'none', gaps, needsYou }
 }
 
+// A shell script that writes each file byte for byte: a quoted heredoc per file, so $, backticks and backslashes stay
+// literal, with a delimiter that appears in no line of the content. Contents end with a newline (see withNewline).
+const shq = v => `'${String(v).replace(/'/g, `'\\''`)}'`
+function writeScript(files) {
+  const parts = files.map(f => {
+    let tag = 'DEEPWORK_EOF', n = 0
+    while (f.content.split('\n').includes(tag)) tag = `DEEPWORK_EOF_${++n}`
+    const dir = f.path.slice(0, f.path.lastIndexOf('/')) || '.'
+    return `mkdir -p ${shq(dir)} && cat > ${shq(f.path)} <<'${tag}'\n${f.content}${tag}`
+  })
+  return parts.concat(`wc -c ${files.map(f => shq(f.path)).join(' ')}`).join('\n')
+}
+const withNewline = f => (f.content.endsWith('\n') ? f : Object.assign({}, f, { content: `${f.content}\n` }))
+
 // ---------- prompts (one source for both runtimes) ----------
 // Stable rule text lives in references/checks.md; prompts carry what is specific to one call.
 
@@ -426,9 +440,11 @@ const P = {
       + ' is dropped. Do not propose answers, fixes or techniques, and do not judge which approach is promising.',
     `Objections this round:\n${objections.join('\n') || '(none)'}`,
   ]),
-  filewriter: (cfg, files) => 'You are the file writer for a deepwork run. Write each file below exactly as given, creating folders as needed'
-    + ` and overwriting existing files. Change nothing else.\nReport each file with its byte size from \`wc -c\`.`
-    + `\nFiles (JSON array of {path, content}):\n${JSON.stringify(files)}`,
+  // The Write tool can be refused outside the session's folder, and the run folder sits outside every repo, so the script
+  // builds the shell commands and the agent runs them through Bash unchanged.
+  filewriter: (cfg, files) => 'You are the file writer for a deepwork run. Run the shell script below with the Bash tool, exactly as given,'
+    + ' in one call. Do not use the Write or Edit tools, and change nothing else. It ends with `wc -c`; report each file with the byte size'
+    + ` that \`wc -c\` printed.\n\n${writeScript(files)}`,
   // ctx: reportCtx(st, cfg)
   writer: (cfg, ctx) => lines([
     head(cfg, 'report writer'),
@@ -544,6 +560,7 @@ function roundFiles(st, cfg, p, res) {
 
 // Saves through the host, or through a file writer whose reported sizes must match; one retry from the spare calls.
 async function save(st, cfg, files, kind) {
+  files = files.map(withNewline)
   if (HOST) { HOST.write(files); return true }
   phase('Save')
   let todo = files
@@ -596,6 +613,6 @@ async function main() {
 }
 
 const LIB = { SCHEMA, LEVELS, FINAL_CALLS, SPARE_CALLS, SWEEP_MAX_CALLS, BREAK_ASSIGNMENTS, config, checkArgs, init, resume, plan, applyPlan,
-  assess, merge, estimate, reportCtx, renderLedger, contextFor, knownKeys, slowFor, needsRunner, fileOf, rdir, P }
+  assess, merge, estimate, reportCtx, renderLedger, contextFor, knownKeys, slowFor, needsRunner, fileOf, rdir, writeScript, withNewline, P }
 
 return args && args.lib === true ? LIB : main()

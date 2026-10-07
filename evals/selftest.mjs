@@ -108,6 +108,16 @@ function dryRun(L, script, d) {
     .concat(res.calls > res.ceiling ? ['calls above ceiling'] : [], res.report ? [] : ['no report'])
 }
 
+// The file writer's shell script reproduces every file byte for byte, whatever the content holds.
+function writeScriptExact(L) {
+  const d = mkdtempSync(join(tmpdir(), 'dw-dry-')); extra.push(d)
+  const files = [{ path: join(d, 'a b', "it's.md"), content: 'cost $HOME `ls` \\ end\nDEEPWORK_EOF\nno newline at the end' },
+    { path: join(d, 'state.json'), content: JSON.stringify({ a: [1, 'x'] }) }].map(L.withNewline)
+  const r = spawnSync('bash', ['-c', L.writeScript(files)], { encoding: 'utf8' })
+  if (r.status !== 0) return [`script exited ${r.status}: ${r.stderr}`]
+  return files.filter(f => readFileSync(f.path, 'utf8') !== f.content).map(f => `${f.path} differs from its content`)
+}
+
 // args refuses to start without a context pack, and with one that holds only the template.
 function contextRequired(L) {
   const { run } = tempRun(), out = [], tries = []
@@ -154,6 +164,7 @@ export async function selftest(script, dry) {
   for (const c of readJson(join(SKILL, 'evals', 'fixtures.json'))) { const got = runCase(L, c); report(c.name, (got.problems || []).concat(diff(got, c.expect))) }
   report('pair by hand writes a ledger and names the passed candidate', pairByHand(L, script))
   report('args refuses a missing or template-only context pack', contextRequired(L))
+  report('the file writer\'s script writes every file byte for byte', writeScriptExact(L))
   if (dry) for (const d of DRY) report(`dry run: ${d.name}`, dryRun(L, script, d))
   // Each temp repo may keep only its main worktree. Then the repos go, and nothing new may stay in TMPDIR.
   const left = made.flatMap(d => git(d, 'worktree', 'list', '--porcelain').split('\n').filter(l => l.startsWith('worktree ')).slice(1))
