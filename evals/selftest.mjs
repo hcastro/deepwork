@@ -25,7 +25,7 @@ const mkAttemptRec = x => Object.assign({ round: 1, approach: 'A1', kind: 'new',
   ref: null, claim: 'c', met: [], keys: [], reasons: [], looked: [] }, x)
 const mkAttempt = (o, cid) => Object.assign({ claim: 'c', method: 'm', sha: `s-${cid}`, ref: null, quick_checks_pass: true, checks_run: [],
   slow_requests: [], criteria_claimed: [], edited_tests: [], counterexample: null, control_run: null, looked: [], proposed_approaches: [],
-  question_for_human: null }, o)
+  question_for_human: null, question_blocking: false }, o)
 // "pass:M1,S1|head=x|dirty|control|obj=key/class"
 function mkCheck(spec, cid, sha) {
   if (spec === null) return null

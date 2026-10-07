@@ -53,7 +53,7 @@ const SCHEMA = {
   attempt: obj({ claim: str, method: str, sha: nstr, ref: nstr, quick_checks_pass: bool,
     checks_run: arr(obj({ command: str, exit_code: nint, output_path: nstr })), slow_requests: arr(obj({ command: str, why: str })),
     criteria_claimed: arr(str), edited_tests: arr(obj({ path: str, change: en('weakened', 'equivalent', 'strengthened'), reason: str })),
-    counterexample: nbool, control_run: nstr, looked: arr(str), proposed_approaches: arr(str), question_for_human: nstr }),
+    counterexample: nbool, control_run: nstr, looked: arr(str), proposed_approaches: arr(str), question_for_human: nstr, question_blocking: bool }),
   run: obj({ head_sha: nstr, dirty: bool, runs: arr(obj({ command: str, criterion_id: nstr, status: en('ran', 'not_run'), exit_code: nint,
     output_path: nstr, observed: str, reason_not_run: nstr })) }),
   check: obj({ candidate_id: str, head_sha: nstr, dirty: bool, verdict: en('pass', 'fail', 'cant_tell'),
@@ -119,7 +119,7 @@ function init(A) {
   return {
     version: 2, level: A.level, mode: A.mode, problem_hash: A.problem_hash, criteria: A.criteria, approaches: A.approaches.map(a => newApproach(a)),
     round: 0, roundBase: 0, calls: A.framing_calls || 0, earlierCalls: 0, spareUsed: 0,
-    attempts: [], excluded: [], proposed: [], notes: [], droppedNotes: 0, unclear: [], needsYou: [],
+    attempts: [], excluded: [], proposed: [], questions: [], notes: [], droppedNotes: 0, unclear: [], needsYou: [],
     breakDone: false, usage: [], resumes: [], refused: [], stop: null,
   }
 }
@@ -133,7 +133,7 @@ function resume(prior, A) {
   const changed = A.problem_hash !== st.problem_hash
   st.resumes.push({ after_round: st.round, calls: st.calls, stop: st.stop ? st.stop.reason : null, from: st.level, to: A.level, problem_changed: changed })
   Object.assign(st, { earlierCalls: st.earlierCalls + st.calls, calls: 0, spareUsed: 0, roundBase: st.round, stop: null, breakDone: false,
-    level: A.level, unclear: [], needsYou: [] })
+    level: A.level, unclear: [], needsYou: [], questions: [] })
   if (!changed) return st
   Object.assign(st, { problem_hash: A.problem_hash, criteria: A.criteria })
   for (const x of st.attempts.filter(y => y.status === 'passed' || y.status === 'confirmed')) {
@@ -242,7 +242,12 @@ function merge(st, p, res, cfg) {
     st.attempts.push(e)
     if (!att) continue
     Object.assign(e, { sha: att.sha, ref: att.ref, claim: clip(att.claim, 300), looked: att.looked })
-    if (att.question_for_human && !st.stop) st.stop = { reason: 'question', detail: att.question_for_human, from: a.cid }
+    // Only a blocking question stops the run. Any other goes to Needs you and to later workers, and the run goes on.
+    if (att.question_for_human && att.question_blocking && !st.stop) st.stop = { reason: 'question', detail: att.question_for_human, from: a.cid }
+    else if (att.question_for_human && !st.questions.some(q => norm(q.text) === norm(att.question_for_human))) {
+      st.questions.push({ text: att.question_for_human, from: a.cid })
+      st.needsYou.push(`${a.cid} asked, without blocking the run: ${clip(att.question_for_human, 300)}`)
+    }
     const valid = r.checks.filter(c => !isVoid(c, att.sha)), objs = valid.flatMap(c => c.objections)
     const all = v => valid.length >= need && valid.every(c => c.verdict === v)
     e.keys = uniq(objs.map(o => o.key))
@@ -299,6 +304,7 @@ function renderLedger(st) {
       + `${x.looked.length ? `; looked: ${x.looked.join('; ')}` : ''}`)
   }
   L.push('', '## Excluded approaches', '', ...st.excluded.map(e => `- ${e.approach}: ${e.claim} (by ${e.by}; control run: ${e.control_run})`))
+  L.push('', '## Open questions for the human', '', ...(st.questions || []).map(q => `- ${q.from}: ${q.text}`))
   L.push('', '## Recurring objections', '', ...recurring(st).map(k => `- ${k}`))
   L.push('', '## Process warnings (apply every one)', '', ...st.notes.map(n => `- r${n.round}: ${n.text} (cites ${n.cites.join(', ')})`))
   L.push('', '## Calls', '', ...st.resumes.map(r => `- resumed after r${r.after_round} (${r.calls} calls, stop ${r.stop}, ${r.from} to ${r.to})`))
@@ -357,7 +363,7 @@ const head = (cfg, role) => [
 ].join('\n')
 const scratch = sha => `You are in your own scratch worktree. ${sha ? `First run \`git checkout --detach ${sha}\`.`
   : 'The candidate has no commit; stay at your starting commit.'} Finish as "Scratch worktrees" in checks.md says.`
-const view = (cid, att) => Object.assign({ candidate_id: cid }, att, { ref: null, question_for_human: null, proposed_approaches: [] })
+const view = (cid, att) => Object.assign({ candidate_id: cid }, att, { ref: null, question_for_human: null, question_blocking: false, proposed_approaches: [] })
 const lines = xs => xs.filter(Boolean).join('\n')
 
 const TASK = {
@@ -392,6 +398,10 @@ const P = {
     TASK[a.kind](a),
     `Criteria in scope: ${a.criteria.join(', ')}. You choose the method. Read first: problem.md, the ledger and ${cfg.run}/brief.md if they exist.`,
     ctx.recurring.length ? `Objections that recur in this run; answer them where they apply: ${ctx.recurring.join(', ')}` : '',
+    ctx.questions.length ? `Open questions earlier workers asked the human, still unanswered. Answer them from the context pack's sources if you can;`
+      + ` otherwise work around them and say what your result assumes:\n${ctx.questions.map(q => `- ${q}`).join('\n')}` : '',
+    'Ask the human only what the context pack and its sources cannot answer. Set question_blocking true only when no must criterion can'
+      + ' move forward without the answer; any other question is recorded and the run continues.',
     ctx.base ? `Build on candidate ${ctx.base.cid}. Before any edit run \`git reset --hard ${ctx.base.sha}\`. Read its attempt file`
       + ` ${fileOf(cfg, ctx.base.round, ctx.base.cid, 'attempt')}, its check files ${rdir(cfg, ctx.base.round)}/${ctx.base.cid}.check*.json and its`
       + ` runner output ${ctx.base.run_file} if it exists; continue any bisect from its last step.`
@@ -482,7 +492,7 @@ async function call(st, cfg, kind, role, prompt, opts, hostOpts) {
 }
 
 function contextFor(st, cfg, a) {
-  const ctx = { recurring: recurring(st), base: null, target: null }
+  const ctx = { recurring: recurring(st), questions: (st.questions || []).map(q => q.text), base: null, target: null }
   const b = a.base && st.attempts.find(x => x.cid === a.base)
   const ce = b && st.attempts.filter(x => x.kind === 'break' && x.against === b.cid && x.status === 'held').pop()
   if (b) ctx.base = { cid: b.cid, round: b.round, sha: b.sha, run_file: fileOf(cfg, b.round, b.cid, 'run'),

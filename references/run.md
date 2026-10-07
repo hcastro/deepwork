@@ -126,7 +126,7 @@ Exclusion: a disproof counts only when every checker reran its control run in a 
 
 The ledger holds the approaches with their status, the attempt log (status, criteria met, objection keys, commit, where break attempts looked), the excluded approaches with their control runs, recurring objections, process warnings and call usage.
 
-Stops: accepted, rounds, exhausted, a worker's `question_for_human`, and unclear-problem once two different attempts raise an objection of that class. A single unclear-problem objection goes to Needs you.
+Stops: accepted, rounds, exhausted, a worker's `question_for_human` marked `question_blocking`, and unclear-problem once two different attempts raise an objection of that class. A single unclear-problem objection goes to Needs you. So does a question that does not block; later workers see it and work around it.
 
 Resume with `deepwork-host.mjs args ... --resume`, which puts `state.json` into `args.json` as `prior`, and confirm again when the level rises. The old stop, the unclear-problem count and Needs you clear. The call count starts at 0 under the new ceiling, and the sweep is not charged again. Earlier calls stay on record, round numbers continue, and the round limit and set-aside counts start from the resume. When `problem.md` changed, the new criteria apply, approaches with new IDs join, and every passed candidate goes back through the checkers as a repair. To reopen an approach or force a disproof hunt, add it to `problem.md` under a new ID. Within one Claude Code session you can also relaunch with `resumeFromRunId`, the same `scriptPath` and identical args.
 

@@ -852,7 +852,7 @@
   }
  },
  {
-  "name": "question_for_human always stops the run",
+  "name": "a blocking question_for_human stops the run",
   "do": "merge",
   "results": [
    {
@@ -862,7 +862,8 @@
      "kind": "new"
     },
     "attempt": {
-     "question_for_human": "which region is in scope?"
+     "question_for_human": "which region is in scope?",
+     "question_blocking": true
     },
     "checks": [
      "pass:M1"
@@ -1393,6 +1394,32 @@
    "assignments": [
     "A2:new"
    ]
+  }
+ },
+ {
+  "name": "a non-blocking question goes to Needs you and the run continues",
+  "do": "merge",
+  "results": [
+   {
+    "cid": "C1.1",
+    "a": {
+     "approach": "A1",
+     "kind": "new"
+    },
+    "attempt": {
+     "question_for_human": "what share of traffic has the feature flag on?"
+    },
+    "checks": [
+     "fail:M1"
+    ]
+   }
+  ],
+  "compare": {
+   "C1.1": "block"
+  },
+  "expect": {
+   "stop": null,
+   "needs_you": 1
   }
  }
 ]
