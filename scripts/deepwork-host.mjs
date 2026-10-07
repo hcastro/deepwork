@@ -2,7 +2,7 @@
 // deepwork host. Runs workflows/deepwork.js (or a run's copy) outside Claude Code, turning each agent() call into a
 // fresh `codex exec`, and drives pair by hand with the script's own planner and merge. Node 18 or newer, standard library only.
 const HELP = `usage: node deepwork-host.mjs <command> [flags]   (references/runtimes.md explains each step)
-  args --run R --mode M --level L [--problem P] [--context C] [--framing-calls N] [--resume]   write and print <run>/args.json
+  args --run R --mode M --level L [--problem P] [--context C] [--framing-calls N] [--time-budget-min T] [--resume]   write and print <run>/args.json
   estimate --mode M --level L [--host] [--framing-calls N]     worst-case calls against the level's ceiling
   prompt sweep --run R --mode investigation --source code|logs|upstream
   prompt worker|runner|checker|writer|auditor --args A       pair by hand
@@ -85,6 +85,13 @@ export function makeArgs(L, f) {
   const cp = contextPack(resolve(f.context || join(run, 'context.md')))
   const a = { mode: f.mode, level: f.level, run, problem, context: cp.path, context_hash: cp.hash, skill: SKILL, problem_hash: pb.hash,
     framing_calls: Number(f['framing-calls'] || 0), criteria: pb.criteria, approaches: pb.approaches }
+  // An optional time budget, counted from now; a resume starts a new one. confirm.md quotes it.
+  const budget = f['time-budget-min'] !== undefined ? Number(f['time-budget-min']) : null
+  if (budget !== null) {
+    if (!Number.isInteger(budget) || budget <= 0) throw new Error('--time-budget-min must be a whole number of minutes above 0')
+    const now = Math.floor(Date.now() / 1000)
+    Object.assign(a, { time_budget_min: budget, started_at: now, deadline: now + budget * 60 })
+  }
   if (f.resume) a.prior = readJson(join(run, 'state.json'))
   const err = L.checkArgs(a, true); if (err) throw new Error(err)
   writeJson(join(run, 'args.json'), a)
@@ -148,6 +155,7 @@ function makeCodexHooks(runDir) {
       const errs = o.schema ? validate(o.schema, out) : []
       if (errs.length) throw new Error(`schema: ${errs.slice(0, 3).join('; ')}`)
     } catch (e) { console.error(`[${label}] ${e.message}; no retry, counts as a missing result`); out = null }
+    if (out && 'finished_at' in out) out.finished_at = Math.floor(Date.now() / 1000)
     if (wt) {
       // Record what git says, not what the agent reported.
       let head = null, dirty = true
@@ -163,7 +171,8 @@ function makeCodexHooks(runDir) {
     }
     return out
   })
-  const host = { write: files => { for (const f of files) { mkdirSync(dirname(f.path), { recursive: true }); writeFileSync(f.path, f.content) } } }
+  const host = { write: files => { for (const f of files) { mkdirSync(dirname(f.path), { recursive: true }); writeFileSync(f.path, f.content) } },
+    now: () => Math.floor(Date.now() / 1000) }
   // Worker commits outlive their worktrees through refs/deepwork, so the run's end removes every worktree and temp folder made here.
   const cleanup = () => {
     for (const w of made) try { git(repo, 'worktree', 'remove', '--force', w) } catch { /* scratch trees are already gone */ }
@@ -228,7 +237,7 @@ export function record(L, f) {
     checks: [load(x, 'check1', L.SCHEMA.check)] }))
   const calls = items.reduce((n, r) => n + [r.attempt, r.run, r.checks[0]].filter(Boolean).length, 0)
   st.calls += calls
-  L.merge(st, p, { items, compare: null, review: null, calls }, cfg)
+  L.merge(st, p, { items, compare: null, review: null, calls, now: Math.floor(Date.now() / 1000) }, cfg)
   writeJson(join(a.run, 'state.json'), st)
   writeFileSync(join(a.run, 'ledger.md'), L.renderLedger(st))
   const next = L.plan(st, cfg)

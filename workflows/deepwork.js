@@ -4,7 +4,7 @@ export const meta = {
   whenToUse: 'Launched by the deepwork skill only after the user approved confirm.md, which names this workflow and its call ceiling.',
   phases: [
     { title: 'Work', detail: 'one worker per assignment, each in its own worktree' },
-    { title: 'Run', detail: 'slow commands, one candidate at a time, in a scratch worktree' },
+    { title: 'Run', detail: 'slow commands in a scratch worktree; timing-sensitive runs take turns' },
     { title: 'Check', detail: 'blind checkers, each in its own scratch worktree' },
     { title: 'Compare', detail: 'the round\'s candidates side by side' },
     { title: 'Review', detail: 'process reviewer, full level only' },
@@ -51,15 +51,16 @@ const obj = p => ({ type: 'object', additionalProperties: false, properties: p, 
 
 const SCHEMA = {
   attempt: obj({ claim: str, method: str, sha: nstr, ref: nstr, quick_checks_pass: bool,
-    checks_run: arr(obj({ command: str, exit_code: nint, output_path: nstr })), slow_requests: arr(obj({ command: str, why: str })),
+    checks_run: arr(obj({ command: str, exit_code: nint, output_path: nstr })), slow_requests: arr(obj({ command: str, why: str, exclusive: bool })),
     criteria_claimed: arr(str), edited_tests: arr(obj({ path: str, change: en('weakened', 'equivalent', 'strengthened'), reason: str })),
-    counterexample: nbool, control_run: nstr, looked: arr(str), proposed_approaches: arr(str), question_for_human: nstr, question_blocking: bool }),
+    counterexample: nbool, control_run: nstr, looked: arr(str), proposed_approaches: arr(str), question_for_human: nstr, question_blocking: bool,
+    finished_at: nint }),
   run: obj({ head_sha: nstr, dirty: bool, runs: arr(obj({ command: str, criterion_id: nstr, status: en('ran', 'not_run'), exit_code: nint,
-    output_path: nstr, observed: str, reason_not_run: nstr })) }),
+    output_path: nstr, observed: str, reason_not_run: nstr })), finished_at: nint }),
   check: obj({ candidate_id: str, head_sha: nstr, dirty: bool, verdict: en('pass', 'fail', 'cant_tell'),
     criteria: arr(obj({ id: str, status: en('met', 'unmet', 'not_run'), evidence: str })),
     objections: arr(obj({ key: str, class: en('wrong-approach', 'missed-case', 'weak-evidence', 'unclear-problem'), criterion_id: nstr,
-      where: str, why: str })), control_run_caught: nbool }),
+      where: str, why: str })), control_run_caught: nbool, finished_at: nint }),
   compare: obj({ shared_blind_spots: arr(str), rows: arr(obj({ candidate_id: str, verdict: en('pass', 'block'), why: str })) }),
   review: obj({ warnings: arr(obj({ text: str, cites: arr(str) })) }),
   report: obj({ report_md: str, needs_you: arr(str) }),
@@ -87,11 +88,14 @@ const slowFor = (st, a) => (SOLUTION.includes(a.kind) ? st.criteria.filter(c => 
 // its runner, since a failing check may be its counterexample.
 const needsRunner = (crits, a, att) => !!att && (crits.length > 0 || att.slow_requests.length > 0)
   && (!SOLUTION.includes(a.kind) || att.quick_checks_pass)
+// A slow criterion needs a quiet machine unless problem.md marks it exclusive: false; a worker marks each slow request.
+const exclusiveRun = (crits, att) => crits.some(c => c.exclusive !== false) || att.slow_requests.some(x => x.exclusive)
 const utf8Len = s => Array.from(String(s)).reduce((n, ch) => n + [0x80, 0x800, 0x10000, Infinity].findIndex(m => ch.codePointAt(0) < m) + 1, 0)
 
 function config(A, host) {
   const runId = String(A.run || 'run').split('/').filter(Boolean).pop().replace(/[^A-Za-z0-9._-]+/g, '-')
-  return { mode: A.mode, level: A.level, run: A.run, problem: A.problem, context: A.context, skill: A.skill, host: !!host, runId, L: LEVELS[A.level] }
+  return { mode: A.mode, level: A.level, run: A.run, problem: A.problem, context: A.context, skill: A.skill, host: !!host, runId, L: LEVELS[A.level],
+    startedAt: A.started_at || null, deadline: A.deadline || null }
 }
 
 function checkArgs(A, host) {
@@ -104,6 +108,8 @@ function checkArgs(A, host) {
   if (weak.length) return `must criteria marked cannot_fail: ${weak.join(', ')}. Build a check that can fail as its own pair task,`
     + ' merge it into the base branch, update problem.md and confirm again.'
   if (!A.prior && !(A.approaches || []).length) return 'args.approaches is empty'
+  if (A.deadline != null && !(Number.isInteger(A.deadline) && Number.isInteger(A.started_at) && A.deadline > A.started_at))
+    return 'args.deadline needs args.started_at, both whole epoch seconds, with the deadline later'
   const f = A.framing_calls || 0
   if (!Number.isInteger(f) || f < 0 || f > SWEEP_MAX_CALLS) return `args.framing_calls must be an integer from 0 to ${SWEEP_MAX_CALLS}`
   return null
@@ -120,7 +126,7 @@ function init(A) {
     version: 2, level: A.level, mode: A.mode, problem_hash: A.problem_hash, criteria: A.criteria, approaches: A.approaches.map(a => newApproach(a)),
     round: 0, roundBase: 0, calls: A.framing_calls || 0, earlierCalls: 0, spareUsed: 0,
     attempts: [], excluded: [], proposed: [], questions: [], notes: [], droppedNotes: 0, unclear: [], needsYou: [],
-    breakDone: false, usage: [], resumes: [], refused: [], stop: null,
+    breakDone: false, usage: [], resumes: [], refused: [], stop: null, clock: 0,
   }
 }
 
@@ -170,6 +176,16 @@ function mk(st, o) {
 const roundCost = (cfg, n, brk) => n * (2 + cfg.L.checkers) + (cfg.host ? 0 : 1) + (brk ? 0 : (cfg.L.compare ? 1 : 0) + (cfg.L.reviewer ? 1 : 0))
 const numbered = p => { p.assignments.forEach((a, k) => { a.cid = `C${p.round}.${k + 1}` }); return p }
 
+// The clock is the latest finish time any agent reported (or the host stamped), in epoch seconds. A new round starts only
+// when one more round as long as the last one still ends before the deadline. A break round always runs.
+function outOfTime(st, cfg) {
+  if (!cfg.deadline || !st.clock) return false
+  const ends = st.usage.filter(u => u.round > st.roundBase && u.ended_at).map(u => u.ended_at)
+  const prev = ends.length > 1 ? ends[ends.length - 2] : cfg.startedAt || st.clock
+  const last = ends.length ? ends[ends.length - 1] - prev : 0
+  return st.clock + Math.max(0, last) > cfg.deadline
+}
+
 function plan(st, cfg) {
   const p = { round: st.round + 1, kind: 'work', stop: null, assignments: [], setAside: [], gaps: [], reviewer: false, adopt: [] }
   if (st.stop) return Object.assign(p, { stop: st.stop.reason })
@@ -189,6 +205,7 @@ function plan(st, cfg) {
     return numbered(p)
   }
   if (p.round - st.roundBase > cfg.L.rounds) return Object.assign(p, { stop: 'rounds' })
+  if (outOfTime(st, cfg)) return Object.assign(p, { stop: 'time' })
   const live = []
   for (const d of st.approaches.filter(x => x.status === 'open').sort((a, b) => cmpId(a.id, b.id))) {
     const atts = attemptsOf(st, d), recent = atts.filter(x => x.round > st.roundBase)
@@ -306,7 +323,10 @@ function merge(st, p, res, cfg) {
     if (uniq(w.cites).filter(k => known.has(k)).length >= 2) st.notes.push({ round: p.round, text: w.text, cites: w.cites })
     else st.droppedNotes += 1
   }
-  st.usage.push({ round: p.round, kind: p.kind, calls: res.calls || 0 })
+  const reported = res.items.flatMap(r => [r.attempt, r.run].concat(r.checks)).filter(Boolean).map(x => x.finished_at)
+    .filter(Number.isInteger).concat(Number.isInteger(res.now) ? [res.now] : [])
+  if (reported.length) st.clock = Math.max(st.clock || 0, ...reported)
+  st.usage.push({ round: p.round, kind: p.kind, calls: res.calls || 0, ended_at: st.clock || null })
   return st
 }
 
@@ -377,12 +397,14 @@ const head = (cfg, role) => [
   `Problem statement, frozen; read it next: ${cfg.problem}. Run folder: ${cfg.run}.`,
   `Ledger, the run's record, with its process warnings: ${cfg.run}/ledger.md (it does not exist before round 2).`,
   `Rules for you: ${cfg.skill}/references/checks.md, sections "Shared rules", "Result fields" and "${cfg.mode[0].toUpperCase() + cfg.mode.slice(1)}".`,
+  cfg.deadline ? `The run's time budget ends at epoch ${cfg.deadline} (compare with \`date +%s\`). Do not start work you cannot finish by then.` : '',
   'If an instruction stops you, name the file and quote the line. Return only the structured result.',
-].join('\n')
+].filter(Boolean).join('\n')
 const scratch = sha => `You are in your own scratch worktree. ${sha ? `First run \`git checkout --detach ${sha}\`.`
   : 'The candidate has no commit; stay at your starting commit.'} Finish as "Scratch worktrees" in checks.md says.`
 const view = (cid, att) => Object.assign({ candidate_id: cid }, att, { ref: null, question_for_human: null, question_blocking: false, proposed_approaches: [] })
 const lines = xs => xs.filter(Boolean).join('\n')
+const FINISH = 'As the last step, set finished_at to the output of `date +%s`.'
 
 const TASK = {
   new: a => `Establish this approach: ${a.claim}`,
@@ -428,6 +450,7 @@ const P = {
       + ` ${fileOf(cfg, ctx.target.round, ctx.target.cid, 'attempt')}.` : '',
     'You are in your own git worktree; changes there need no approval. Commit locally and never push. Before returning, run'
       + ` \`git update-ref ${refName(cfg, a.cid)} HEAD\` so the commit outlives the worktree, and report sha and ref.`,
+    FINISH,
   ]),
   runner: (cfg, a, att, crits) => lines([
     head(cfg, 'runner'),
@@ -438,6 +461,7 @@ const P = {
       + ' your worktree you may write.',
     att.slow_requests.length ? `Requested by the worker:\n${att.slow_requests.map(r => `- \`${r.command}\` (${r.why})`).join('\n')}` : '',
     crits.length ? `Slow acceptance checks:\n${crits.map(c => `- criterion ${c.id}: \`${c.command || 'see problem.md'}\``).join('\n')}` : '',
+    FINISH,
   ]),
   checker: (cfg, criteria, a, att, run, keys) => lines([
     head(cfg, 'checker'),
@@ -451,6 +475,7 @@ const P = {
     `${VERDICT[a.kind](cfg, a, att)} cant_tell counts as not passed.${a.kind === 'disproof' ? '' : ' control_run_caught: null.'}`,
     keys.length ? `Reuse one of these objection keys when it names the same obstacle: ${keys.join(', ')}` : '',
     `Candidate:\n${JSON.stringify(view(a.cid, att))}`,
+    FINISH,
   ]),
   compare: (cfg, views, earlier) => lines([
     head(cfg, 'comparison checker'),
@@ -537,11 +562,13 @@ async function runRound(st, p, cfg) {
       return { a, attempt, run: null, checks: [] }
     },
     async r => {
-      // One runner per candidate, one at a time across the round, so slow runs do not compete for the machine.
+      // One runner per candidate. Runners with timing-sensitive work take turns, so those runs do not compete for the machine;
+      // the rest run alongside.
       const crits = slowFor(st, r.a)
       if (!needsRunner(crits, r.a, r.attempt)) return r
-      r.run = await serial(() => call(st, cfg, 'round', 'runner', P.runner(cfg, r.a, r.attempt, crits),
-        { phase: 'Run', label: `${r.a.cid} run`, schema: SCHEMA.run, isolation: 'worktree' }, tree(r.attempt.sha, { out: outDir(cfg, r.a.cid) })))
+      const go = () => call(st, cfg, 'round', 'runner', P.runner(cfg, r.a, r.attempt, crits),
+        { phase: 'Run', label: `${r.a.cid} run`, schema: SCHEMA.run, isolation: 'worktree' }, tree(r.attempt.sha, { out: outDir(cfg, r.a.cid) }))
+      r.run = await (exclusiveRun(crits, r.attempt) ? serial(go) : go())
       return r
     },
     async r => {
@@ -633,7 +660,7 @@ async function main() {
     log(`deepwork: round ${p.round} (${p.kind}): ${p.assignments.map(a => `${a.cid} ${a.approach} ${a.kind}`).join(', ')}`)
     const before = st.calls
     const res = await runRound(st, p, cfg)
-    merge(st, p, Object.assign(res, { calls: st.calls - before }), cfg)
+    merge(st, p, Object.assign(res, { calls: st.calls - before, now: HOST && HOST.now ? HOST.now() : null }), cfg)
     await save(st, cfg, roundFiles(st, cfg, p, res), 'round')
     if (st.stop) break
   }
@@ -641,6 +668,7 @@ async function main() {
 }
 
 const LIB = { SCHEMA, LEVELS, FINAL_CALLS, SPARE_CALLS, SWEEP_MAX_CALLS, BREAK_ASSIGNMENTS, config, checkArgs, init, resume, plan, applyPlan,
-  assess, merge, estimate, reportCtx, renderLedger, contextFor, knownKeys, slowFor, needsRunner, fileOf, rdir, writeScript, withNewline, P }
+  assess, merge, estimate, reportCtx, renderLedger, contextFor, knownKeys, slowFor, needsRunner, exclusiveRun, outOfTime, fileOf, rdir,
+  writeScript, withNewline, P }
 
 return args && args.lib === true ? LIB : main()

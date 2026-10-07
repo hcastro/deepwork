@@ -1525,5 +1525,120 @@
     "A1:repair@C1.1"
    ]
   }
+ },
+ {
+  "name": "time: no new round when one more as long as the last would pass the deadline",
+  "do": "plan",
+  "args": {
+   "started_at": 1000,
+   "deadline": 2000
+  },
+  "state": {
+   "round": 1,
+   "calls": 9,
+   "clock": 1600,
+   "usage": [
+    {
+     "round": 1,
+     "kind": "work",
+     "calls": 9,
+     "ended_at": 1600
+    }
+   ],
+   "attempts": [
+    {
+     "cid": "C1.1",
+     "approach": "A1"
+    }
+   ]
+  },
+  "expect": {
+   "stop": "time",
+   "assignments": []
+  }
+ },
+ {
+  "name": "time: the next round starts when it fits before the deadline",
+  "do": "plan",
+  "args": {
+   "started_at": 1000,
+   "deadline": 3000
+  },
+  "state": {
+   "round": 1,
+   "calls": 9,
+   "clock": 1600,
+   "usage": [
+    {
+     "round": 1,
+     "kind": "work",
+     "calls": 9,
+     "ended_at": 1600
+    }
+   ],
+   "attempts": [
+    {
+     "cid": "C1.1",
+     "approach": "A1"
+    }
+   ]
+  },
+  "expect": {
+   "stop": null,
+   "assignments": [
+    "A2:new",
+    "A1:repair@C1.1"
+   ]
+  }
+ },
+ {
+  "name": "time: a merge moves the clock to the latest reported finish",
+  "do": "merge",
+  "results": [
+   {
+    "cid": "C1.1",
+    "a": {
+     "approach": "A1",
+     "kind": "new"
+    },
+    "attempt": {
+     "finished_at": 1500
+    },
+    "checks": [
+     "fail:M1"
+    ]
+   },
+   {
+    "cid": "C1.2",
+    "a": {
+     "approach": "A2",
+     "kind": "new"
+    },
+    "attempt": {
+     "finished_at": 1400
+    },
+    "checks": [
+     "fail:M1"
+    ]
+   }
+  ],
+  "compare": {
+   "C1.1": "block",
+   "C1.2": "block"
+  },
+  "expect": {
+   "stop": null,
+   "clock": 1500
+  }
+ },
+ {
+  "name": "args: a deadline needs a start time before it",
+  "do": "args",
+  "args": {
+   "deadline": 2000
+  },
+  "expect": {
+   "error": "args.deadline needs args.started_at, both whole epoch seconds, with the deadline later"
+  }
  }
 ]

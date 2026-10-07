@@ -79,6 +79,10 @@ An objection key is a short stable name a checker gives an obstacle, such as `M2
 
 Skipping straight to team needs two numbers at framing time: the sweep count and the cost of one test. Go back to framing for an unclear request. Decline full when the reviewer line names nobody who can judge the output.
 
+## Time budget
+
+Set one with `deepwork-host.mjs args ... --time-budget-min N`. It records `started_at` and a `deadline` in `args.json`, counted from that moment, and a resume sets a new one. The run's clock is the latest `finished_at` any agent reported; under the Codex host, the host stamps it. Before each work round, the planner stops as `time` when one more round as long as the last would pass the deadline. Every agent's prompt carries the deadline, and a runner marks a command it cannot finish in time `not_run`, with the arithmetic. A break round always runs.
+
 ## Spend confirmation
 
 Team and full only. Run `deepwork-host.mjs estimate --mode M --level L [--host] [--framing-calls N]`, fill `assets/confirm.md`, show it and wait. Quote the call ceiling first, framing calls included. Nothing launches before the yes, probe launches included. Resuming at a higher level needs a new confirmation.
@@ -86,7 +90,7 @@ Team and full only. Run `deepwork-host.mjs estimate --mode M --level L [--host] 
 ## One round
 
 1. **Work.** One worker per assignment, each in its own worktree. An assignment is one worker on one approach in one round. The worker commits locally, points the named ref `refs/deepwork/<run>/<cid>` at its commit so the commit outlives the worktree, runs only quick checks, and lists up to three slow commands it needs.
-2. **Run.** One runner per candidate runs those slow commands and the slow acceptance checks in a scratch worktree, one runner at a time across the round. A scratch worktree is a fresh git worktree at the candidate commit, used by one agent and then removed. There is no runner when nothing slow is asked for, or when a solution worker's own quick checks failed.
+2. **Run.** One runner per candidate runs those slow commands and the slow acceptance checks in a scratch worktree. A runner with timing-sensitive work waits for the previous one: any slow criterion not marked `exclusive: false` in `problem.md`, or any request the worker marked `exclusive`. Other runners start right away. A scratch worktree is a fresh git worktree at the candidate commit, used by one agent and then removed. There is no runner when nothing slow is asked for, or when a solution worker's own quick checks failed.
 3. **Check.** Each checker works in its own scratch worktree, reruns the quick checks, and judges slow criteria from the runner output. Break attempts and disproof hunts get checkers too.
 4. **Compare**, at team and full. The comparison checker reads every candidate of the round side by side, or a lone candidate against the best earlier ones, and returns one pass or block row per candidate.
 5. **Process check.** The script lists objection keys that appear in two or more attempts and puts them in the next prompts. At full, the process reviewer writes warnings into the ledger, and a warning that cites fewer than two known objection keys is dropped. Workers and checkers apply every warning.
@@ -125,7 +129,7 @@ Exclusion: a disproof counts only when every checker reran its control run in a 
 
 The ledger holds the approaches with their status, the attempt log (status, criteria met, objection keys, commit, where break attempts looked), the excluded approaches with their control runs, recurring objections, process warnings and call usage.
 
-Stops: accepted, rounds, exhausted, a worker's `question_for_human` marked `question_blocking`, and unclear-problem once two different attempts raise an objection of that class. A single unclear-problem objection goes to Needs you. So does a question that does not block; later workers see it and work around it.
+Stops: accepted, rounds, exhausted, time, a worker's `question_for_human` marked `question_blocking`, and unclear-problem once two different attempts raise an objection of that class. A single unclear-problem objection goes to Needs you. So does a question that does not block; later workers see it and work around it.
 
 Resume with `deepwork-host.mjs args ... --resume`, which puts `state.json` into `args.json` as `prior`, and confirm again when the level rises. The old stop, the unclear-problem count and Needs you clear. The call count starts at 0 under the new ceiling, and the sweep is not charged again. Earlier calls stay on record, round numbers continue, and the round limit and set-aside counts start from the resume. When `problem.md` changed, the new criteria apply, approaches with new IDs join, and every passed candidate goes back through the checkers as a repair. To reopen an approach or force a disproof hunt, add it to `problem.md` under a new ID. Within one Claude Code session you can also relaunch with `resumeFromRunId`, the same `scriptPath` and identical args.
 

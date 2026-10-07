@@ -25,13 +25,13 @@ const mkAttemptRec = x => Object.assign({ round: 1, approach: 'A1', kind: 'new',
   ref: null, claim: 'c', met: [], keys: [], reasons: [], looked: [] }, x)
 const mkAttempt = (o, cid) => Object.assign({ claim: 'c', method: 'm', sha: `s-${cid}`, ref: null, quick_checks_pass: true, checks_run: [],
   slow_requests: [], criteria_claimed: [], edited_tests: [], counterexample: null, control_run: null, looked: [], proposed_approaches: [],
-  question_for_human: null, question_blocking: false }, o)
+  question_for_human: null, question_blocking: false, finished_at: null }, o)
 // "pass:M1,S1|head=x|dirty|control|obj=key/class"
 function mkCheck(spec, cid, sha) {
   if (spec === null) return null
   const [head, ...mods] = spec.split('|'), [verdict, ids] = head.split(':')
   const c = { candidate_id: cid, head_sha: sha, dirty: false, verdict, criteria: (ids ? ids.split(',') : []).map(id => ({ id, status: 'met', evidence: 'e' })),
-    objections: [], control_run_caught: null }
+    objections: [], control_run_caught: null, finished_at: null }
   for (const m of mods) {
     const [k, v] = m.split('=')
     if (k === 'head') c.head_sha = v
@@ -42,14 +42,15 @@ function mkCheck(spec, cid, sha) {
   return c
 }
 const mkRun = (spec, sha) => (spec === null || spec === undefined ? null : { head_sha: spec === 'void' ? 'elsewhere' : sha, dirty: false,
-  runs: spec === 'void' ? [] : spec.split(',').map(id => ({ command: 'c', criterion_id: id, status: 'ran', exit_code: 0, output_path: null, observed: 'o', reason_not_run: null })) })
+  runs: spec === 'void' ? [] : spec.split(',').map(id => ({ command: 'c', criterion_id: id, status: 'ran', exit_code: 0, output_path: null, observed: 'o', reason_not_run: null })),
+  finished_at: null })
 const fmt = a => `${a.approach}:${a.kind}${a.base ? '@' + a.base : ''}${a.against ? '>' + a.against : ''}`
 const diff = (got, want) => Object.keys(want).filter(k => JSON.stringify(got[k]) !== JSON.stringify(want[k]))
   .map(k => `${k}: want ${JSON.stringify(want[k])} got ${JSON.stringify(got[k])}`)
 
 function runCase(L, c) {
   const A = { mode: c.mode || 'implementation', level: c.level || 'team', run: '/r/run1', problem: '/r/problem.md', context: '/r/run1/context.md', skill: SKILL, problem_hash: 'h',
-    framing_calls: c.framing_calls || 0, criteria: c.criteria || CRITERIA, approaches: c.approaches || APPROACHES }
+    framing_calls: c.framing_calls || 0, criteria: c.criteria || CRITERIA, approaches: c.approaches || APPROACHES, ...(c.args || {}) }
   if (c.do === 'args') return { error: L.checkArgs(A, !!c.host) }
   if (c.do === 'estimate') return { rows: c.rows.map(r => { const e = L.estimate(r); return `${e.worst_case_calls}/${e.ceiling}` }) }
   let cfg = L.config(A, !!c.host), st = Object.assign(L.init(A), JSON.parse(JSON.stringify(c.state || {})))
@@ -73,7 +74,7 @@ function runCase(L, c) {
   const compare = c.compare === null ? null : { shared_blind_spots: [], rows: Object.entries(c.compare || {}).map(([candidate_id, verdict]) => ({ candidate_id, verdict, why: 'w' })) }
   L.merge(st, p, { items, compare, review: c.review || null }, cfg)
   return { problems, statuses: Object.fromEntries(st.attempts.map(x => [x.cid, x.status])), approaches: Object.fromEntries(st.approaches.map(d => [d.id, d.status])),
-    excluded: st.excluded.length, stop: st.stop ? st.stop.reason : null, needs_you: st.needsYou.length, notes: st.notes.length }
+    excluded: st.excluded.length, stop: st.stop ? st.stop.reason : null, needs_you: st.needsYou.length, notes: st.notes.length, clock: st.clock }
 }
 
 const DRY_BLOCK = { criteria: [{ id: 'M1', tier: 'must', kind: 'check', slow: false, command: 'true', cannot_fail: false, statement: 'quick' },
@@ -96,6 +97,8 @@ const DRY = [
   { name: 'full investigation, reject-all, exhausted', args: { mode: 'investigation', level: 'full', 'framing-calls': 3 }, env: { STUB_REJECT_ALL: '1' },
     want: { status: 'partial', stop: 'exhausted', calls: 35 } },
   { name: 'pair research, C1.1 fails and the untried A2 passes as C2.1', args: { mode: 'research', level: 'pair' }, want: { status: 'passed', stop: 'accepted', calls: 8 } },
+  { name: 'team implementation with a time budget, same result, and the host stamps the clock', args: { mode: 'implementation', level: 'team', 'time-budget-min': 30 },
+    want: { status: 'confirmed', stop: 'accepted', calls: 11 }, clocked: true },
 ]
 function dryRun(L, script, d) {
   const { dir, run } = tempRun()
@@ -104,8 +107,10 @@ function dryRun(L, script, d) {
   const r = spawnSync(process.execPath, [HOST_FILE, 'run', '--args', join(run, 'args.json'), '--script', script], { env, encoding: 'utf8' })
   if (r.status !== 0) return [`host exited ${r.status}: ${String(r.stderr).slice(-400)}`]
   const res = JSON.parse(r.stdout)
+  const st = d.clocked ? readJson(join(run, 'state.json')) : null
   return diff({ status: res.status, stop: res.stop && res.stop.reason, calls: res.calls }, d.want)
-    .concat(res.calls > res.ceiling ? ['calls above ceiling'] : [], res.report ? [] : ['no report'])
+    .concat(res.calls > res.ceiling ? ['calls above ceiling'] : [], res.report ? [] : ['no report'],
+      st && !(st.clock > 0 && st.usage.every(u => u.ended_at)) ? ['clock or round end times not recorded'] : [])
 }
 
 // The file writer's shell script reproduces every file byte for byte, whatever the content holds.
@@ -116,6 +121,19 @@ function writeScriptExact(L) {
   const r = spawnSync('bash', ['-c', L.writeScript(files)], { encoding: 'utf8' })
   if (r.status !== 0) return [`script exited ${r.status}: ${r.stderr}`]
   return files.filter(f => readFileSync(f.path, 'utf8') !== f.content).map(f => `${f.path} differs from its content`)
+}
+
+// Only timing-sensitive runner work takes the shared lock: slow criteria unless marked exclusive: false, and slow
+// requests the worker marked exclusive.
+function lockSplit(L) {
+  const att = x => ({ slow_requests: x })
+  const cases = [
+    ['slow criterion, default', [{ id: 'M2', slow: true }], att([]), true],
+    ['slow criterion marked exclusive: false', [{ id: 'M2', slow: true, exclusive: false }], att([]), false],
+    ['only a non-exclusive request', [], att([{ command: 'pnpm test', why: 'w', exclusive: false }]), false],
+    ['an exclusive request', [], att([{ command: 'node bench.mjs', why: 'w', exclusive: true }]), true],
+  ]
+  return cases.filter(([, c, a, want]) => L.exclusiveRun(c, a) !== want).map(([n, , , want]) => `${n}: want ${want}`)
 }
 
 // args refuses to start without a context pack, and with one that holds only the template.
@@ -164,6 +182,7 @@ export async function selftest(script, dry) {
   for (const c of readJson(join(SKILL, 'evals', 'fixtures.json'))) { const got = runCase(L, c); report(c.name, (got.problems || []).concat(diff(got, c.expect))) }
   report('pair by hand writes a ledger and names the passed candidate', pairByHand(L, script))
   report('args refuses a missing or template-only context pack', contextRequired(L))
+  report('only timing-sensitive runner work takes the shared lock', lockSplit(L))
   report('the file writer\'s script writes every file byte for byte', writeScriptExact(L))
   if (dry) for (const d of DRY) report(`dry run: ${d.name}`, dryRun(L, script, d))
   // Each temp repo may keep only its main worktree. Then the repos go, and nothing new may stay in TMPDIR.

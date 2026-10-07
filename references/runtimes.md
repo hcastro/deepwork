@@ -22,7 +22,7 @@ A missing or malformed reply counts as a missing result. Pair stays within 8 cal
 
 **Team and full.**
 
-1. Run `deepwork-host.mjs args --run <run> --mode M --level team|full [--framing-calls N]`.
+1. Run `deepwork-host.mjs args --run <run> --mode M --level team|full [--framing-calls N] [--time-budget-min T]`.
 2. Use the shipped `<skill>/workflows/deepwork.js`. When the task needs different prompts, copy it to `<run>/deepwork.js`, edit only `P`, and run `node <skill>/scripts/deepwork-host.mjs selftest --script <run>/deepwork.js`.
 3. Fill and show the confirmation. Wait for the yes.
 4. Launch with `Workflow({ scriptPath: <that file>, args: <the JSON that args printed, unchanged> })`. Launching by path makes the tested file the one that runs. Resume a stopped launch with the same `scriptPath`, the same args and `resumeFromRunId`.

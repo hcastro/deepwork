@@ -41,6 +41,7 @@ criteria: one per acceptance criterion.
   tier        must | should | stretch (only must criteria block acceptance)
   kind        check (a command decides it) | judgment (a one-line judgment)
   slow        true when it runs through the runner
+  exclusive   for a slow criterion, false when it does not need a quiet machine (default true: its runner takes turns)
   command     the command, or null for a judgment
   cannot_fail true when the fail-first check showed it cannot fail; the run refuses to start
   statement   what it means in one line

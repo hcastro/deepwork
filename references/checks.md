@@ -9,7 +9,7 @@ The standard workers aim for and checkers apply. Your prompt names this file and
 - **Real checks only.** A check that did not start, or only parses or typechecks, does not count. Say which check did not run and why.
 - **A crashed or skipped check means not met.** Never report met for something you did not see pass.
 - **Confirm the commit.** Run `git rev-parse HEAD` before you judge anything. A tool's report that an edit worked is no evidence; read the diff.
-- **Slow commands go through the runner.** Workers run only quick checks and list slow ones (load runs, benchmarks, bisect steps, the full suite) in `slow_requests`, at most three. Runners run long commands in the background, poll their output, and keep each within the slow-check time limit in `problem.md`. When one would need longer, mark it `not_run` and give the arithmetic; never run it short.
+- **Slow commands go through the runner.** Workers run only quick checks and list slow ones (load runs, benchmarks, bisect steps, the full suite) in `slow_requests`, at most three. Set `exclusive` true for a command whose result depends on a quiet machine, such as timing, benchmarks and load runs; those runners take turns. Others, such as a full test suite, run alongside other runners. Runners run long commands in the background, poll their output, and keep each within the slow-check time limit in `problem.md`. When one would need longer, mark it `not_run` and give the arithmetic; never run it short.
 - **Checker stance.** Treat every step as wrong until you justify it, and every citation as wrong until you reopen it. Rerun quick checks yourself. Recompute any arithmetic built on runner output.
 - **Scratch worktrees.** Checkers, runners and the auditor work only in their own scratch worktree. Cause effects (an injected delay, a forced fault, a planted bug) only there. Never edit the main checkout or another worktree, and never commit. The one place outside your worktree you may write is the output folder a runner prompt names. Before finishing, run `git reset --hard <sha> && git clean -fd`, then report `head_sha` from `git rev-parse HEAD` and `dirty` as whether `git status --porcelain` prints anything. A result whose tree moved or stayed dirty is void.
 - **Workers never push and never merge.** Commit locally in your own worktree and set the named ref your prompt gives.
@@ -19,6 +19,7 @@ The standard workers aim for and checkers apply. Your prompt names this file and
 
 ## Result fields
 
+- `finished_at`: the output of `date +%s` as your last step. The run uses it as its clock for the time budget.
 - `method`: at most three sentences. No reasoning trace.
 - `quick_checks_pass`: true only when every quick check you ran passed.
 - `slow_requests`: slow commands you need, each with why.
