@@ -1,0 +1,1398 @@
+[
+ {
+  "name": "V1-0: a stopped team run resumed at full runs a round",
+  "do": "plan",
+  "level": "team",
+  "state": {
+   "round": 2,
+   "calls": 25,
+   "stop": {
+    "reason": "rounds"
+   },
+   "attempts": [
+    {
+     "cid": "C1.1",
+     "approach": "A1"
+    },
+    {
+     "cid": "C1.2",
+     "approach": "A2"
+    },
+    {
+     "cid": "C2.1",
+     "round": 2,
+     "approach": "A1",
+     "kind": "repair",
+     "base": "C1.1"
+    },
+    {
+     "cid": "C2.2",
+     "round": 2,
+     "approach": "A2",
+     "kind": "repair",
+     "base": "C1.2"
+    }
+   ]
+  },
+  "resume": {
+   "level": "full"
+  },
+  "expect": {
+   "stop": null,
+   "kind": "work",
+   "assignments": [
+    "A1:repair@C2.1",
+    "A2:repair@C2.2"
+   ],
+   "reviewer": true
+  }
+ },
+ {
+  "name": "V1-0: a resume after question_for_human clears the stop",
+  "do": "plan",
+  "state": {
+   "round": 1,
+   "calls": 9,
+   "stop": {
+    "reason": "question",
+    "detail": "which region?"
+   },
+   "attempts": [
+    {
+     "cid": "C1.1",
+     "approach": "A1"
+    }
+   ]
+  },
+  "resume": {},
+  "expect": {
+   "stop": null,
+   "assignments": [
+    "A2:new",
+    "A1:repair@C1.1"
+   ]
+  }
+ },
+ {
+  "name": "V1-4/V3-1: a dead comparison checker blocks acceptance",
+  "do": "merge",
+  "results": [
+   {
+    "cid": "C1.1",
+    "a": {
+     "approach": "A1",
+     "kind": "new"
+    },
+    "checks": [
+     "pass:M1"
+    ]
+   }
+  ],
+  "compare": null,
+  "expect": {
+   "statuses": {
+    "C1.1": "failed"
+   },
+   "approaches": {
+    "A1": "open",
+    "A2": "open"
+   }
+  }
+ },
+ {
+  "name": "V1-4/V3-1: a missing pass row blocks acceptance",
+  "do": "merge",
+  "results": [
+   {
+    "cid": "C1.1",
+    "a": {
+     "approach": "A1",
+     "kind": "new"
+    },
+    "checks": [
+     "pass:M1"
+    ]
+   },
+   {
+    "cid": "C1.2",
+    "a": {
+     "approach": "A2",
+     "kind": "new"
+    },
+    "checks": [
+     "pass:M1"
+    ]
+   }
+  ],
+  "compare": {
+   "C1.1": "pass"
+  },
+  "expect": {
+   "statuses": {
+    "C1.1": "passed",
+    "C1.2": "failed"
+   },
+   "approaches": {
+    "A1": "passed",
+    "A2": "open"
+   }
+  }
+ },
+ {
+  "name": "a missing checker result blocks acceptance (full, two checkers)",
+  "do": "merge",
+  "level": "full",
+  "results": [
+   {
+    "cid": "C1.1",
+    "a": {
+     "approach": "A1",
+     "kind": "new"
+    },
+    "checks": [
+     "pass:M1",
+     null
+    ]
+   }
+  ],
+  "compare": {
+   "C1.1": "pass"
+  },
+  "expect": {
+   "statuses": {
+    "C1.1": "failed"
+   }
+  }
+ },
+ {
+  "name": "V1-16: a check whose HEAD left the candidate, or whose tree is dirty, is void and blocks",
+  "do": "merge",
+  "results": [
+   {
+    "cid": "C1.1",
+    "a": {
+     "approach": "A1",
+     "kind": "new"
+    },
+    "checks": [
+     "pass:M1|head=elsewhere"
+    ]
+   },
+   {
+    "cid": "C1.2",
+    "a": {
+     "approach": "A2",
+     "kind": "new"
+    },
+    "checks": [
+     "pass:M1|dirty"
+    ]
+   },
+   {
+    "cid": "C1.3",
+    "a": {
+     "approach": "A1",
+     "kind": "new"
+    },
+    "checks": [
+     "pass:M1"
+    ]
+   }
+  ],
+  "compare": {
+   "C1.1": "pass",
+   "C1.2": "pass",
+   "C1.3": "pass"
+  },
+  "expect": {
+   "statuses": {
+    "C1.1": "failed",
+    "C1.2": "failed",
+    "C1.3": "passed"
+   }
+  }
+ },
+ {
+  "name": "V1-5: a pass at team gets a break round before the stop",
+  "do": "plan",
+  "state": {
+   "round": 1,
+   "calls": 12,
+   "briefDone": true,
+   "attempts": [
+    {
+     "cid": "C1.1",
+     "approach": "A1"
+    },
+    {
+     "cid": "C1.2",
+     "approach": "A2",
+     "status": "passed",
+     "met": [
+      "M1"
+     ]
+    }
+   ]
+  },
+  "status": {
+   "A2": "passed"
+  },
+  "expect": {
+   "stop": null,
+   "kind": "break",
+   "assignments": [
+    "A2:break>C1.2"
+   ]
+  }
+ },
+ {
+  "name": "V1-5: an investigation break round adds disproof hunts up to BREAK_ASSIGNMENTS; the rest are open gaps",
+  "do": "plan",
+  "mode": "investigation",
+  "framing_calls": 3,
+  "approaches": [
+   {
+    "id": "H1",
+    "kind": "establish",
+    "claim": "h1"
+   },
+   {
+    "id": "H2",
+    "kind": "establish",
+    "claim": "h2"
+   },
+   {
+    "id": "H3",
+    "kind": "establish",
+    "claim": "h3"
+   },
+   {
+    "id": "H4",
+    "kind": "establish",
+    "claim": "h4"
+   },
+   {
+    "id": "H5",
+    "kind": "establish",
+    "claim": "h5"
+   }
+  ],
+  "state": {
+   "round": 1,
+   "calls": 14,
+   "attempts": [
+    {
+     "cid": "C1.1",
+     "approach": "H1",
+     "status": "passed",
+     "met": [
+      "M1"
+     ]
+    },
+    {
+     "cid": "C1.2",
+     "approach": "H2"
+    },
+    {
+     "cid": "C1.3",
+     "approach": "H3"
+    }
+   ]
+  },
+  "status": {
+   "H1": "passed"
+  },
+  "expect": {
+   "kind": "break",
+   "assignments": [
+    "H1:break>C1.1",
+    "H2:disproof>H2",
+    "H3:disproof>H3"
+   ],
+   "gaps": [
+    "H4",
+    "H5"
+   ]
+  }
+ },
+ {
+  "name": "a counterexample that holds breaks the candidate and reopens its approach",
+  "do": "merge",
+  "kind": "break",
+  "state": {
+   "round": 1,
+   "attempts": [
+    {
+     "cid": "C1.2",
+     "approach": "A2",
+     "status": "passed",
+     "met": [
+      "M1"
+     ]
+    }
+   ]
+  },
+  "status": {
+   "A2": "passed"
+  },
+  "results": [
+   {
+    "cid": "C2.1",
+    "a": {
+     "approach": "A2",
+     "kind": "break",
+     "against": "C1.2"
+    },
+    "attempt": {
+     "counterexample": true
+    },
+    "checks": [
+     "pass"
+    ]
+   }
+  ],
+  "expect": {
+   "statuses": {
+    "C1.2": "broken",
+    "C2.1": "held"
+   },
+   "approaches": {
+    "A1": "open",
+    "A2": "open"
+   }
+  }
+ },
+ {
+  "name": "a crashed break attempt leaves the candidate passed but not confirmed",
+  "do": "merge",
+  "kind": "break",
+  "state": {
+   "round": 1,
+   "attempts": [
+    {
+     "cid": "C1.2",
+     "approach": "A2",
+     "status": "passed",
+     "met": [
+      "M1"
+     ]
+    }
+   ]
+  },
+  "status": {
+   "A2": "passed"
+  },
+  "results": [
+   {
+    "cid": "C2.1",
+    "a": {
+     "approach": "A2",
+     "kind": "break",
+     "against": "C1.2"
+    },
+    "attempt": null
+   }
+  ],
+  "expect": {
+   "statuses": {
+    "C1.2": "passed",
+    "C2.1": "crashed"
+   }
+  }
+ },
+ {
+  "name": "at most one break round per run",
+  "do": "plan",
+  "state": {
+   "round": 2,
+   "calls": 22,
+   "breakDone": true,
+   "attempts": [
+    {
+     "cid": "C1.2",
+     "approach": "A2",
+     "status": "passed",
+     "met": [
+      "M1"
+     ]
+    }
+   ]
+  },
+  "status": {
+   "A2": "passed"
+  },
+  "expect": {
+   "stop": "accepted"
+  }
+ },
+ {
+  "name": "V1-1/V2-1/V3-6: an exclusion counts only when the checker reran the control run",
+  "do": "merge",
+  "mode": "investigation",
+  "approaches": [
+   {
+    "id": "H1",
+    "kind": "establish",
+    "claim": "h1"
+   },
+   {
+    "id": "H2",
+    "kind": "establish",
+    "claim": "h2"
+   },
+   {
+    "id": "H3",
+    "kind": "establish",
+    "claim": "h3"
+   }
+  ],
+  "results": [
+   {
+    "cid": "C1.1",
+    "a": {
+     "approach": "H2",
+     "kind": "disproof",
+     "against": "H2"
+    },
+    "attempt": {
+     "control_run": "forced the delay; the check caught it"
+    },
+    "checks": [
+     "pass"
+    ]
+   },
+   {
+    "cid": "C1.2",
+    "a": {
+     "approach": "H3",
+     "kind": "disproof",
+     "against": "H3"
+    },
+    "attempt": {
+     "control_run": "forced the delay; the check caught it"
+    },
+    "checks": [
+     "pass|control"
+    ]
+   }
+  ],
+  "expect": {
+   "statuses": {
+    "C1.1": "failed",
+    "C1.2": "held"
+   },
+   "approaches": {
+    "H1": "open",
+    "H2": "open",
+    "H3": "excluded"
+   },
+   "excluded": 1
+  }
+ },
+ {
+  "name": "V1-6/V3-4: a repair builds on the best attempt and its sha",
+  "do": "plan",
+  "level": "full",
+  "state": {
+   "round": 2,
+   "calls": 40,
+   "briefDone": true,
+   "attempts": [
+    {
+     "cid": "C1.1",
+     "approach": "A1",
+     "met": [
+      "M1"
+     ]
+    },
+    {
+     "cid": "C2.1",
+     "round": 2,
+     "approach": "A1",
+     "kind": "repair",
+     "base": "C1.1"
+    }
+   ]
+  },
+  "expect": {
+   "assignments": [
+    "A1:repair@C1.1",
+    "A2:new"
+   ],
+   "base_sha": [
+    "s-C1.1",
+    null
+   ]
+  }
+ },
+ {
+  "name": "V2-2: a slow must criterion with no runner output is unmet; an unmet slow should criterion does not block",
+  "do": "merge",
+  "criteria": [
+   {
+    "id": "M1",
+    "tier": "must",
+    "kind": "check",
+    "slow": false,
+    "command": "true",
+    "cannot_fail": false,
+    "statement": "s"
+   },
+   {
+    "id": "M2",
+    "tier": "must",
+    "kind": "check",
+    "slow": true,
+    "command": "true",
+    "cannot_fail": false,
+    "statement": "s"
+   },
+   {
+    "id": "S2",
+    "tier": "should",
+    "kind": "check",
+    "slow": true,
+    "command": "true",
+    "cannot_fail": false,
+    "statement": "s"
+   }
+  ],
+  "results": [
+   {
+    "cid": "C1.1",
+    "a": {
+     "approach": "A1",
+     "kind": "new"
+    },
+    "checks": [
+     "pass:M1,M2,S2"
+    ],
+    "run": null
+   },
+   {
+    "cid": "C1.2",
+    "a": {
+     "approach": "A2",
+     "kind": "new"
+    },
+    "checks": [
+     "pass:M1,M2,S2"
+    ],
+    "run": "M2"
+   }
+  ],
+  "compare": {
+   "C1.1": "pass",
+   "C1.2": "pass"
+  },
+  "expect": {
+   "statuses": {
+    "C1.1": "failed",
+    "C1.2": "passed"
+   }
+  }
+ },
+ {
+  "name": "V1-10: a must criterion marked cannot_fail refuses to start",
+  "do": "args",
+  "criteria": [
+   {
+    "id": "M1",
+    "tier": "must",
+    "kind": "check",
+    "slow": false,
+    "command": "true",
+    "cannot_fail": true,
+    "statement": "s"
+   }
+  ],
+  "expect": {
+   "error": "must criteria marked cannot_fail: M1. Build a check that can fail as its own pair task, merge it into the base branch, update problem.md and confirm again."
+  }
+ },
+ {
+  "name": "pair refuses to launch as a Claude Code workflow (it runs by hand there)",
+  "do": "args",
+  "level": "pair",
+  "expect": {
+   "error": "pair runs by hand in Claude Code (references/runtimes.md)"
+  }
+ },
+ {
+  "name": "V1-2: team round 2 with three approaches and slow checks keeps all three assignments",
+  "do": "plan",
+  "criteria": [
+   {
+    "id": "M1",
+    "tier": "must",
+    "kind": "check",
+    "slow": false,
+    "command": "true",
+    "cannot_fail": false,
+    "statement": "s"
+   },
+   {
+    "id": "M2",
+    "tier": "must",
+    "kind": "check",
+    "slow": true,
+    "command": "true",
+    "cannot_fail": false,
+    "statement": "s"
+   }
+  ],
+  "approaches": [
+   {
+    "id": "A1",
+    "kind": "establish",
+    "claim": "one"
+   },
+   {
+    "id": "A2",
+    "kind": "establish",
+    "claim": "two"
+   },
+   {
+    "id": "A3",
+    "kind": "establish",
+    "claim": "three"
+   }
+  ],
+  "state": {
+   "round": 1,
+   "calls": 12,
+   "briefDone": true,
+   "attempts": [
+    {
+     "cid": "C1.1",
+     "approach": "A1"
+    },
+    {
+     "cid": "C1.2",
+     "approach": "A2"
+    },
+    {
+     "cid": "C1.3",
+     "approach": "A3"
+    }
+   ]
+  },
+  "expect": {
+   "assignments": [
+    "A1:repair@C1.1",
+    "A2:repair@C1.2",
+    "A3:repair@C1.3"
+   ]
+  }
+ },
+ {
+  "name": "V3-9: worst case per level against its ceiling, framing calls included",
+  "do": "estimate",
+  "rows": [
+   {
+    "level": "pair",
+    "mode": "investigation"
+   },
+   {
+    "level": "pair",
+    "mode": "research"
+   },
+   {
+    "level": "team",
+    "mode": "implementation"
+   },
+   {
+    "level": "team",
+    "mode": "investigation"
+   },
+   {
+    "level": "team",
+    "mode": "implementation",
+    "host": true
+   },
+   {
+    "level": "team",
+    "mode": "investigation",
+    "host": true
+   },
+   {
+    "level": "full",
+    "mode": "research"
+   },
+   {
+    "level": "full",
+    "mode": "investigation"
+   },
+   {
+    "level": "full",
+    "mode": "implementation",
+    "host": true
+   },
+   {
+    "level": "full",
+    "mode": "investigation",
+    "host": true
+   }
+  ],
+  "expect": {
+   "rows": [
+    "11/12",
+    "8/12",
+    "37/41",
+    "40/41",
+    "31/41",
+    "34/41",
+    "94/100",
+    "97/100",
+    "86/100",
+    "89/100"
+   ]
+  }
+ },
+ {
+  "name": "pair accepts on its one checker with no comparison checker",
+  "do": "merge",
+  "level": "pair",
+  "host": true,
+  "results": [
+   {
+    "cid": "C1.1",
+    "a": {
+     "approach": "A1",
+     "kind": "new"
+    },
+    "checks": [
+     "pass:M1"
+    ]
+   }
+  ],
+  "compare": null,
+  "expect": {
+   "statuses": {
+    "C1.1": "passed"
+   }
+  }
+ },
+ {
+  "name": "pair adds no break round after a pass",
+  "do": "plan",
+  "level": "pair",
+  "host": true,
+  "state": {
+   "round": 1,
+   "calls": 3,
+   "attempts": [
+    {
+     "cid": "C1.1",
+     "approach": "A1",
+     "status": "passed",
+     "met": [
+      "M1"
+     ]
+    }
+   ]
+  },
+  "status": {
+   "A1": "passed"
+  },
+  "expect": {
+   "stop": "accepted"
+  }
+ },
+ {
+  "name": "an unclear-problem objection from two different attempts stops the run",
+  "do": "merge",
+  "results": [
+   {
+    "cid": "C1.1",
+    "a": {
+     "approach": "A1",
+     "kind": "new"
+    },
+    "checks": [
+     "fail|obj=M1-scope/unclear-problem"
+    ]
+   },
+   {
+    "cid": "C1.2",
+    "a": {
+     "approach": "A2",
+     "kind": "new"
+    },
+    "checks": [
+     "fail|obj=M1-units/unclear-problem"
+    ]
+   }
+  ],
+  "compare": {},
+  "expect": {
+   "stop": "unclear-problem",
+   "needs_you": 2
+  }
+ },
+ {
+  "name": "a single unclear-problem objection goes to Needs you without stopping",
+  "do": "merge",
+  "results": [
+   {
+    "cid": "C1.1",
+    "a": {
+     "approach": "A1",
+     "kind": "new"
+    },
+    "checks": [
+     "fail|obj=M1-scope/unclear-problem"
+    ]
+   }
+  ],
+  "compare": {},
+  "expect": {
+   "stop": null,
+   "needs_you": 1
+  }
+ },
+ {
+  "name": "question_for_human always stops the run",
+  "do": "merge",
+  "results": [
+   {
+    "cid": "C1.1",
+    "a": {
+     "approach": "A1",
+     "kind": "new"
+    },
+    "attempt": {
+     "question_for_human": "which region is in scope?"
+    },
+    "checks": [
+     "pass:M1"
+    ]
+   }
+  ],
+  "compare": {
+   "C1.1": "pass"
+  },
+  "expect": {
+   "stop": "question"
+  }
+ },
+ {
+  "name": "an approach is set aside after three attempts without a pass or two crashes",
+  "do": "plan",
+  "level": "full",
+  "state": {
+   "round": 3,
+   "calls": 60,
+   "briefDone": true,
+   "attempts": [
+    {
+     "cid": "C1.1",
+     "approach": "A1"
+    },
+    {
+     "cid": "C2.1",
+     "round": 2,
+     "approach": "A1",
+     "kind": "repair"
+    },
+    {
+     "cid": "C3.1",
+     "round": 3,
+     "approach": "A1",
+     "kind": "repair"
+    },
+    {
+     "cid": "C1.2",
+     "approach": "A2",
+     "status": "crashed"
+    },
+    {
+     "cid": "C2.2",
+     "round": 2,
+     "approach": "A2",
+     "status": "crashed"
+    }
+   ]
+  },
+  "expect": {
+   "stop": "exhausted",
+   "setAside": [
+    "A1",
+    "A2"
+   ]
+  }
+ },
+ {
+  "name": "process reviewer warnings that cite fewer than two known objection keys are dropped",
+  "do": "merge",
+  "level": "full",
+  "state": {
+   "round": 1,
+   "attempts": [
+    {
+     "cid": "C1.1",
+     "approach": "A1",
+     "keys": [
+      "M1-a",
+      "M1-b"
+     ]
+    }
+   ]
+  },
+  "results": [],
+  "review": {
+   "warnings": [
+    {
+     "text": "rerun the fixture setup first",
+     "cites": [
+      "M1-a",
+      "M1-b"
+     ]
+    },
+    {
+     "text": "check the units",
+     "cites": [
+      "M1-a",
+      "M1-a"
+     ]
+    }
+   ]
+  },
+  "expect": {
+   "notes": 1
+  }
+ },
+ {
+  "name": "v2 order: untried hypotheses go before repairs that met no must criterion",
+  "do": "plan",
+  "mode": "investigation",
+  "framing_calls": 3,
+  "approaches": [
+   {
+    "id": "H1",
+    "kind": "establish",
+    "claim": "h1"
+   },
+   {
+    "id": "H2",
+    "kind": "establish",
+    "claim": "h2"
+   },
+   {
+    "id": "H3",
+    "kind": "establish",
+    "claim": "h3"
+   },
+   {
+    "id": "H4",
+    "kind": "establish",
+    "claim": "h4"
+   },
+   {
+    "id": "H5",
+    "kind": "establish",
+    "claim": "h5"
+   }
+  ],
+  "state": {
+   "round": 1,
+   "calls": 10,
+   "attempts": [
+    {
+     "cid": "C1.1",
+     "approach": "H1"
+    },
+    {
+     "cid": "C1.2",
+     "approach": "H2"
+    },
+    {
+     "cid": "C1.3",
+     "approach": "H3"
+    }
+   ]
+  },
+  "expect": {
+   "assignments": [
+    "H4:new",
+    "H5:new",
+    "H1:repair@C1.1"
+   ]
+  }
+ },
+ {
+  "name": "v2 order: a repair that met a must criterion still goes first",
+  "do": "plan",
+  "mode": "investigation",
+  "approaches": [
+   {
+    "id": "H1",
+    "kind": "establish",
+    "claim": "h1"
+   },
+   {
+    "id": "H2",
+    "kind": "establish",
+    "claim": "h2"
+   },
+   {
+    "id": "H3",
+    "kind": "establish",
+    "claim": "h3"
+   },
+   {
+    "id": "H4",
+    "kind": "establish",
+    "claim": "h4"
+   },
+   {
+    "id": "H5",
+    "kind": "establish",
+    "claim": "h5"
+   }
+  ],
+  "state": {
+   "round": 1,
+   "calls": 10,
+   "attempts": [
+    {
+     "cid": "C1.1",
+     "approach": "H1"
+    },
+    {
+     "cid": "C1.2",
+     "approach": "H2",
+     "met": [
+      "M1"
+     ]
+    },
+    {
+     "cid": "C1.3",
+     "approach": "H3"
+    }
+   ]
+  },
+  "expect": {
+   "assignments": [
+    "H2:repair@C1.2",
+    "H4:new",
+    "H5:new"
+   ]
+  }
+ },
+ {
+  "name": "v2 break: no counterexample with an empty looked list leaves the candidate passed",
+  "do": "merge",
+  "kind": "break",
+  "state": {
+   "round": 1,
+   "attempts": [
+    {
+     "cid": "C1.2",
+     "approach": "A2",
+     "status": "passed",
+     "met": [
+      "M1"
+     ]
+    }
+   ]
+  },
+  "status": {
+   "A2": "passed"
+  },
+  "results": [
+   {
+    "cid": "C2.1",
+    "a": {
+     "approach": "A2",
+     "kind": "break",
+     "against": "C1.2"
+    },
+    "attempt": {
+     "counterexample": false,
+     "looked": []
+    },
+    "checks": [
+     "pass"
+    ]
+   }
+  ],
+  "expect": {
+   "statuses": {
+    "C1.2": "passed",
+    "C2.1": "unchecked"
+   }
+  }
+ },
+ {
+  "name": "v2 break: no counterexample confirms only when the checker accepts the search",
+  "do": "merge",
+  "kind": "break",
+  "state": {
+   "round": 1,
+   "attempts": [
+    {
+     "cid": "C1.2",
+     "approach": "A2",
+     "status": "passed",
+     "met": [
+      "M1"
+     ]
+    },
+    {
+     "cid": "C1.3",
+     "approach": "A1",
+     "status": "passed",
+     "met": [
+      "M1"
+     ]
+    }
+   ]
+  },
+  "status": {
+   "A2": "passed",
+   "A1": "passed"
+  },
+  "results": [
+   {
+    "cid": "C2.1",
+    "a": {
+     "approach": "A2",
+     "kind": "break",
+     "against": "C1.2"
+    },
+    "attempt": {
+     "counterexample": false,
+     "looked": [
+      "empty input",
+      "max load"
+     ]
+    },
+    "checks": [
+     "pass"
+    ]
+   },
+   {
+    "cid": "C2.2",
+    "a": {
+     "approach": "A1",
+     "kind": "break",
+     "against": "C1.3"
+    },
+    "attempt": {
+     "counterexample": false,
+     "looked": [
+      "empty input"
+     ]
+    },
+    "checks": [
+     "fail"
+    ]
+   }
+  ],
+  "expect": {
+   "statuses": {
+    "C1.2": "confirmed",
+    "C1.3": "passed",
+    "C2.1": "none-found",
+    "C2.2": "unchecked"
+   }
+  }
+ },
+ {
+  "name": "v2 repair context names the base's runner output",
+  "do": "context",
+  "state": {
+   "round": 1,
+   "attempts": [
+    {
+     "cid": "C1.1",
+     "approach": "A1"
+    }
+   ]
+  },
+  "assignment": {
+   "cid": "C2.1",
+   "approach": "A1",
+   "kind": "repair",
+   "base": "C1.1",
+   "against": null
+  },
+  "expect": {
+   "base": {
+    "cid": "C1.1",
+    "round": 1,
+    "sha": "s-C1.1",
+    "run_file": "/r/run1/rounds/r1/C1.1.run.json",
+    "counterexample_file": null
+   }
+  }
+ },
+ {
+  "name": "v2 resume: set-aside counts and framing calls start over at the new level",
+  "do": "plan",
+  "level": "team",
+  "mode": "investigation",
+  "framing_calls": 3,
+  "state": {
+   "round": 3,
+   "calls": 30,
+   "stop": {
+    "reason": "rounds"
+   },
+   "attempts": [
+    {
+     "cid": "C1.1",
+     "approach": "A1"
+    },
+    {
+     "cid": "C2.1",
+     "round": 2,
+     "approach": "A1",
+     "kind": "repair",
+     "base": "C1.1"
+    },
+    {
+     "cid": "C3.1",
+     "round": 3,
+     "approach": "A1",
+     "kind": "repair",
+     "base": "C2.1"
+    }
+   ]
+  },
+  "resume": {
+   "level": "full"
+  },
+  "expect": {
+   "stop": null,
+   "setAside": [],
+   "assignments": [
+    "A2:new",
+    "A1:repair@C3.1"
+   ],
+   "calls": 0
+  }
+ },
+ {
+  "name": "v2 resume: a changed problem.md sends a passed candidate back and plans the new approach",
+  "do": "plan",
+  "state": {
+   "round": 2,
+   "calls": 20,
+   "breakDone": true,
+   "stop": {
+    "reason": "accepted"
+   },
+   "attempts": [
+    {
+     "cid": "C1.2",
+     "approach": "A2",
+     "status": "confirmed",
+     "met": [
+      "M1"
+     ]
+    }
+   ]
+  },
+  "status": {
+   "A2": "passed"
+  },
+  "resume": {
+   "problem_hash": "h2",
+   "approaches": [
+    {
+     "id": "A1",
+     "kind": "establish",
+     "claim": "one"
+    },
+    {
+     "id": "A2",
+     "kind": "establish",
+     "claim": "two"
+    },
+    {
+     "id": "A3",
+     "kind": "establish",
+     "claim": "three"
+    }
+   ]
+  },
+  "expect": {
+   "stop": null,
+   "kind": "work",
+   "assignments": [
+    "A2:repair@C1.2",
+    "A1:new",
+    "A3:new"
+   ]
+  }
+ },
+ {
+  "name": "v2 resume: after an unclear-problem stop, one new unclear objection does not stop the run",
+  "do": "merge",
+  "state": {
+   "round": 1,
+   "stop": {
+    "reason": "unclear-problem"
+   },
+   "unclear": [
+    "C1.1",
+    "C1.2"
+   ],
+   "needsYou": [
+    "a",
+    "b"
+   ]
+  },
+  "resume": {
+   "problem_hash": "h2"
+  },
+  "results": [
+   {
+    "cid": "C2.1",
+    "a": {
+     "approach": "A1",
+     "kind": "new"
+    },
+    "checks": [
+     "fail|obj=M1-scope/unclear-problem"
+    ]
+   }
+  ],
+  "compare": {},
+  "expect": {
+   "stop": null,
+   "needs_you": 1
+  }
+ },
+ {
+  "name": "v2 a passed candidate whose approach was excluded is not accepted",
+  "do": "plan",
+  "mode": "investigation",
+  "state": {
+   "round": 1,
+   "calls": 10,
+   "attempts": [
+    {
+     "cid": "C1.1",
+     "approach": "A1",
+     "status": "passed",
+     "met": [
+      "M1"
+     ]
+    }
+   ]
+  },
+  "status": {
+   "A1": "excluded"
+  },
+  "expect": {
+   "stop": null,
+   "kind": "work",
+   "assignments": [
+    "A2:new"
+   ]
+  }
+ }
+]
