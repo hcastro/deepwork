@@ -101,9 +101,8 @@ Team and full only. Run `deepwork-host.mjs estimate --mode M --level L [--host] 
 5. Set an approach aside after 3 attempts without a pass, or after 2 crashes, counted since the last launch.
 6. Each open approach gets one assignment: disproof for a disproof hunt, repair when it has a usable attempt, new otherwise. A repair starts from the approach's best attempt (most must criteria met, then most criteria, then latest) at its commit. Its worker reads that attempt's file, check files and runner output, plus the counterexample if a break attempt broke it.
 7. Order: disproof hunts, then repairs that met a must criterion, then untried approaches, then repairs that met none. The level's assignment count cuts the list.
-8. Nothing left to assign: stop as exhausted.
-
-Approaches that workers propose are never scheduled by the loop. They go to Needs you, and the human adds the ones worth trying.
+8. Approaches that workers propose fill free slots in a work round, oldest first, after every approach from `problem.md`. Each becomes a new approach with an ID `W1`, `W2` and so on and the source `proposed by <cid>`. Team adopts up to 2 per launch, full up to 4, pair none. The rest go to Needs you, and the human adds any worth trying.
+9. Nothing left to assign, proposals included: stop as exhausted.
 
 ## Acceptance
 

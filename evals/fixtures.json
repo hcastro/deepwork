@@ -1421,5 +1421,109 @@
    "stop": null,
    "needs_you": 1
   }
+ },
+ {
+  "name": "team adopts worker proposals into free slots, after problem.md approaches, up to its limit",
+  "do": "plan",
+  "state": {
+   "round": 1,
+   "calls": 9,
+   "attempts": [
+    {
+     "cid": "C1.1",
+     "approach": "A1"
+    }
+   ],
+   "proposed": [
+    {
+     "claim": "try one",
+     "from": "C1.1"
+    },
+    {
+     "claim": "try two",
+     "from": "C1.1"
+    },
+    {
+     "claim": "try three",
+     "from": "C1.1"
+    }
+   ]
+  },
+  "status": {
+   "A2": "excluded"
+  },
+  "expect": {
+   "stop": null,
+   "assignments": [
+    "A1:repair@C1.1",
+    "W1:new",
+    "W2:new"
+   ]
+  }
+ },
+ {
+  "name": "pair never adopts proposals, so it stops exhausted",
+  "do": "plan",
+  "level": "pair",
+  "host": true,
+  "state": {
+   "round": 1,
+   "calls": 4,
+   "proposed": [
+    {
+     "claim": "try one",
+     "from": "C1.1"
+    }
+   ]
+  },
+  "status": {
+   "A1": "excluded",
+   "A2": "excluded"
+  },
+  "expect": {
+   "stop": "exhausted",
+   "assignments": []
+  }
+ },
+ {
+  "name": "team adopts no more proposals once its per-launch limit is used",
+  "do": "plan",
+  "state": {
+   "round": 1,
+   "calls": 9,
+   "attempts": [
+    {
+     "cid": "C1.1",
+     "approach": "A1"
+    }
+   ],
+   "proposed": [
+    {
+     "claim": "try one",
+     "from": "C1.1",
+     "adopted": "W1",
+     "adoptedRound": 1
+    },
+    {
+     "claim": "try two",
+     "from": "C1.1",
+     "adopted": "W2",
+     "adoptedRound": 1
+    },
+    {
+     "claim": "try three",
+     "from": "C1.1"
+    }
+   ]
+  },
+  "status": {
+   "A2": "excluded"
+  },
+  "expect": {
+   "stop": null,
+   "assignments": [
+    "A1:repair@C1.1"
+   ]
+  }
  }
 ]

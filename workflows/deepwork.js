@@ -24,9 +24,9 @@ const PAIR_MAX_CALLS = 12
 const TEAM_MAX_CALLS = 41
 const FULL_MAX_CALLS = 100
 const LEVELS = {
-  pair: { maxCalls: PAIR_MAX_CALLS, rounds: 2, assignments: 1, checkers: 1, compare: false, breakRound: false, reviewer: false },
-  team: { maxCalls: TEAM_MAX_CALLS, rounds: 2, assignments: 3, checkers: 1, compare: true, breakRound: true, reviewer: false },
-  full: { maxCalls: FULL_MAX_CALLS, rounds: 4, assignments: 4, checkers: 2, compare: true, breakRound: true, reviewer: true },
+  pair: { maxCalls: PAIR_MAX_CALLS, rounds: 2, assignments: 1, checkers: 1, compare: false, breakRound: false, reviewer: false, adopt: 0 },
+  team: { maxCalls: TEAM_MAX_CALLS, rounds: 2, assignments: 3, checkers: 1, compare: true, breakRound: true, reviewer: false, adopt: 2 },
+  full: { maxCalls: FULL_MAX_CALLS, rounds: 4, assignments: 4, checkers: 2, compare: true, breakRound: true, reviewer: true, adopt: 4 },
 }
 const FINAL_CALLS = 3 // writer, auditor, final file write (2 under the host, which writes files itself)
 const SPARE_CALLS = 2 // file-writer retries for the whole run (0 under the host)
@@ -171,7 +171,7 @@ const roundCost = (cfg, n, brk) => n * (2 + cfg.L.checkers) + (cfg.host ? 0 : 1)
 const numbered = p => { p.assignments.forEach((a, k) => { a.cid = `C${p.round}.${k + 1}` }); return p }
 
 function plan(st, cfg) {
-  const p = { round: st.round + 1, kind: 'work', stop: null, assignments: [], setAside: [], gaps: [], reviewer: false }
+  const p = { round: st.round + 1, kind: 'work', stop: null, assignments: [], setAside: [], gaps: [], reviewer: false, adopt: [] }
   if (st.stop) return Object.assign(p, { stop: st.stop.reason })
   const passed = passedOf(st)
   if (passed.length) {
@@ -202,13 +202,31 @@ function plan(st, cfg) {
       a: mk(st, { approach: d.id, kind, base: best ? best.cid : null, against: d.kind === 'disprove' ? d.disproves : null }) })
   }
   live.sort((x, y) => x.prio - y.prio || y.score - x.score || cmpId(x.a.approach, y.a.approach))
-  Object.assign(p, { assignments: live.map(x => x.a).slice(0, cfg.L.assignments), reviewer: cfg.L.reviewer })
+  const assignments = live.map(x => x.a).slice(0, cfg.L.assignments)
+  // Free slots go to approaches workers proposed, oldest first, after every approach from problem.md, up to the level's
+  // adopt limit per launch. The rest stay in Needs you.
+  const adoptedHere = st.proposed.filter(x => x.adopted && x.adoptedRound > st.roundBase).length
+  const room = Math.min(cfg.L.assignments - assignments.length, cfg.L.adopt - adoptedHere)
+  const taken = new Set(st.approaches.map(d => d.id))
+  for (const x of st.proposed.filter(q => !q.adopted).slice(0, Math.max(0, room))) {
+    let n = 1
+    while (taken.has(`W${n}`)) n += 1
+    taken.add(`W${n}`)
+    p.adopt.push({ id: `W${n}`, claim: x.claim, from: x.from })
+    assignments.push(mk(st, { approach: `W${n}`, kind: 'new', claim: x.claim }))
+  }
+  Object.assign(p, { assignments, reviewer: cfg.L.reviewer })
   return p.assignments.length ? numbered(p) : Object.assign(p, { stop: 'exhausted' })
 }
 
 function applyPlan(st, p) {
   for (const id of p.setAside) st.approaches.find(d => d.id === id).status = 'set_aside'
   if (p.stop) return
+  for (const x of p.adopt || []) {
+    st.approaches.push(newApproach({ id: x.id, kind: 'establish', claim: x.claim }, `proposed by ${x.from}`))
+    const q = st.proposed.find(y => y.claim === x.claim && !y.adopted)
+    if (q) Object.assign(q, { adopted: x.id, adoptedRound: p.round })
+  }
   st.round = p.round
   if (p.kind === 'break') st.breakDone = true
 }
@@ -254,7 +272,7 @@ function merge(st, p, res, cfg) {
     const unclear = objs.find(o => o.class === 'unclear-problem')
     if (unclear) st.unclear = uniq(st.unclear.concat(a.cid))
     if (unclear) st.needsYou.push(`${a.cid}: the problem statement may be unclear: ${clip(unclear.why, 300)}`)
-    // Worker proposals are never scheduled by the loop. They go to Needs you; the human adds any worth trying and resumes.
+    // Worker proposals wait here. The planner adopts some into free slots (see plan); the rest go to Needs you.
     for (const q of att.proposed_approaches) if (!st.proposed.some(x => norm(x.claim) === norm(q))) st.proposed.push({ claim: q, from: a.cid })
     const d = st.approaches.find(x => x.id === a.approach)
     if (SOLUTION.includes(a.kind)) {
@@ -330,7 +348,7 @@ function reportCtx(st, cfg) {
     .filter(d => d.kind === 'establish' && !['excluded', 'done'].includes(d.status) && (!selected || d.id !== selected.approach))
     .map(d => `- ${d.id} [${d.status}] ${d.claim}`)
   const needsYou = st.needsYou.concat(st.stop && st.stop.detail ? [`${st.stop.reason}: ${st.stop.detail}`] : [],
-    st.proposed.map(x => `approach proposed by ${x.from}, not tried: ${clip(x.claim, 200)}`))
+    st.proposed.filter(x => !x.adopted).map(x => `approach proposed by ${x.from}, not tried: ${clip(x.claim, 200)}`))
   return { selected, best: best && best.cid, sha: (selected || best || {}).sha || null, runnersUp: ranked.slice(1).map(x => x.cid),
     stop: st.stop ? st.stop.reason : 'none', gaps, needsYou }
 }
