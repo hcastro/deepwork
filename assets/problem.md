@@ -8,7 +8,7 @@
 ## Goal, question or symptom
 
 ## Context to read first
-<!-- Research: save each cited source under <run>/sources/ with its locator. -->
+<!-- <run>/context.md first, then anything specific to this problem it does not cover. Research: save each cited source under <run>/sources/ with its locator. -->
 
 ## Allowed assumptions
 

@@ -4,6 +4,7 @@ The standard workers aim for and checkers apply. Your prompt names this file and
 
 ## Shared rules
 
+- **Context first.** Read the context pack your prompt names before anything else. Before you ask the human, look for the answer there and in the sources it lists, including the dashboards and configs under Data sources.
 - **Done** means the claim holds with evidence a stranger can rerun (a command and its output, a `file:line`, a source quote), or you can name the specific obstacle.
 - **Real checks only.** A check that did not start, or only parses or typechecks, does not count. Say which check did not run and why.
 - **A crashed or skipped check means not met.** Never report met for something you did not see pass.

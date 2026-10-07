@@ -48,7 +48,7 @@ const diff = (got, want) => Object.keys(want).filter(k => JSON.stringify(got[k])
   .map(k => `${k}: want ${JSON.stringify(want[k])} got ${JSON.stringify(got[k])}`)
 
 function runCase(L, c) {
-  const A = { mode: c.mode || 'implementation', level: c.level || 'team', run: '/r/run1', problem: '/r/problem.md', skill: SKILL, problem_hash: 'h',
+  const A = { mode: c.mode || 'implementation', level: c.level || 'team', run: '/r/run1', problem: '/r/problem.md', context: '/r/run1/context.md', skill: SKILL, problem_hash: 'h',
     framing_calls: c.framing_calls || 0, criteria: c.criteria || CRITERIA, approaches: c.approaches || APPROACHES }
   if (c.do === 'args') return { error: L.checkArgs(A, !!c.host) }
   if (c.do === 'estimate') return { rows: c.rows.map(r => { const e = L.estimate(r); return `${e.worst_case_calls}/${e.ceiling}` }) }
@@ -87,6 +87,7 @@ function tempRun() {
   const run = `${dir}-run`; extra.push(run, `${dir}.worktrees`)
   mkdirSync(run, { recursive: true })
   writeFileSync(join(run, 'problem.md'), `# Problem\n\n\`\`\`json\n${JSON.stringify(DRY_BLOCK, null, 1)}\n\`\`\`\n`)
+  writeFileSync(join(run, 'context.md'), '# Context pack\n\n## Repo instructions\n\nnone found: a temp repo with one empty commit.\n')
   return { dir, run }
 }
 
@@ -105,6 +106,20 @@ function dryRun(L, script, d) {
   const res = JSON.parse(r.stdout)
   return diff({ status: res.status, stop: res.stop && res.stop.reason, calls: res.calls }, d.want)
     .concat(res.calls > res.ceiling ? ['calls above ceiling'] : [], res.report ? [] : ['no report'])
+}
+
+// args refuses to start without a context pack, and with one that holds only the template.
+function contextRequired(L) {
+  const { run } = tempRun(), out = [], tries = []
+  const attempt = () => { try { makeArgs(L, { run, mode: 'implementation', level: 'pair' }); return null } catch (e) { return e.message } }
+  rmSync(join(run, 'context.md'))
+  tries.push(['missing', attempt(), /is missing/])
+  writeFileSync(join(run, 'context.md'), readFileSync(join(SKILL, 'assets', 'context.md'), 'utf8'))
+  tries.push(['template only', attempt(), /only the template/])
+  for (const [what, err, want] of tries) if (!err || !want.test(err)) out.push(`${what}: want a refusal matching ${want}, got ${err}`)
+  writeFileSync(join(run, 'context.md'), '# Context pack\n\n## Gaps\n\nnone found: nothing to look up.\n')
+  const ok = attempt(); if (ok) out.push(`filled pack refused: ${ok}`)
+  return out
 }
 
 // Pair by hand: prompt, save the reply, record, and the writer must name the passed candidate.
@@ -138,6 +153,7 @@ export async function selftest(script, dry) {
   report('every level\'s worst case stays at least one call under its ceiling', worst)
   for (const c of readJson(join(SKILL, 'evals', 'fixtures.json'))) { const got = runCase(L, c); report(c.name, (got.problems || []).concat(diff(got, c.expect))) }
   report('pair by hand writes a ledger and names the passed candidate', pairByHand(L, script))
+  report('args refuses a missing or template-only context pack', contextRequired(L))
   if (dry) for (const d of DRY) report(`dry run: ${d.name}`, dryRun(L, script, d))
   // Each temp repo may keep only its main worktree. Then the repos go, and nothing new may stay in TMPDIR.
   const left = made.flatMap(d => git(d, 'worktree', 'list', '--porcelain').split('\n').filter(l => l.startsWith('worktree ')).slice(1))

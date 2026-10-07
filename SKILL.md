@@ -11,12 +11,13 @@ Done means a `report.md` that a reviewer who never saw the run can check in ten 
 
 ## Rules
 
-1. Fix the acceptance criteria with the human before any work starts. They live in `problem.md`, and only the human changes them. A must criterion blocks acceptance; should and stretch criteria are only recorded.
-2. Fail-first check: every must criterion with a command has to fail on a known-bad version (the old code, or a copy with one planted bug). A check that cannot fail blocks the run.
-3. Checkers are blind. A checker is a fresh agent that sees a candidate ID such as `C2.1`, never who wrote it, and never grades its own output.
-4. A crashed, skipped or void check counts as a failure. Void means the checker's worktree moved off the candidate commit or was left with changes.
-5. Before team or full, show one spend confirmation and wait for the yes. Pair and the investigation sweep (up to 3 read-only calls) need a one-line notice.
-6. The orchestrator script decides what runs next and whether a candidate passed, by fixed rules. No model makes those calls, and the session never reads a candidate to judge it.
+1. Gather context before framing. The session writes `<run>/context.md` from the repo's instruction files and runbooks, the team knowledge base, the tickets and pages, prior work and the data sources. Every agent reads it first, and the run does not start without it.
+2. Fix the acceptance criteria with the human before any work starts. They live in `problem.md`, and only the human changes them. A must criterion blocks acceptance; should and stretch criteria are only recorded.
+3. Fail-first check: every must criterion with a command has to fail on a known-bad version (the old code, or a copy with one planted bug). A check that cannot fail blocks the run.
+4. Checkers are blind. A checker is a fresh agent that sees a candidate ID such as `C2.1`, never who wrote it, and never grades its own output.
+5. A crashed, skipped or void check counts as a failure. Void means the checker's worktree moved off the candidate commit or was left with changes.
+6. Before team or full, show one spend confirmation and wait for the yes. Pair and the investigation sweep (up to 3 read-only calls) need a one-line notice.
+7. The orchestrator script decides what runs next and whether a candidate passed, by fixed rules. No model makes those calls, and the session never reads a candidate to judge it.
 
 ## Words
 
@@ -43,19 +44,20 @@ A call is one agent run. Each move up names one piece of evidence: a checker obj
 
 ## Steps
 
-1. **Frame.** Fill `assets/problem.md` with the human. In investigation, run the hypothesis sweep first.
-2. **Pre-run checks.** Commands start, the fail-first check holds, and stated failure rates agree with each other and with a rate measured on the test machine.
-3. **Pick a level** and give its reason in one sentence.
-4. **Write args and confirm.** `node scripts/deepwork-host.mjs args` writes `args.json` from `problem.md`. For team or full, fill `assets/confirm.md` from `estimate` and wait.
-5. **Run.** Claude Code launches the workflow file, or drives pair by hand. Codex runs the host script. Keep going between rounds without asking.
-6. **Hand over.** Show the report's Needs you section first. A human review is always required.
+1. **Gather context.** Fill `assets/context.md` as `<run>/context.md`, following "Gather context" in `references/run.md`.
+2. **Frame.** Fill `assets/problem.md` with the human, from the context pack. In investigation, run the hypothesis sweep first.
+3. **Pre-run checks.** Commands start, the fail-first check holds, and stated failure rates agree with each other and with a rate measured on the test machine.
+4. **Pick a level** and give its reason in one sentence.
+5. **Write args and confirm.** `node scripts/deepwork-host.mjs args` writes `args.json` from `problem.md`. For team or full, fill `assets/confirm.md` from `estimate` and wait.
+6. **Run.** Claude Code launches the workflow file, or drives pair by hand. Codex runs the host script. Keep going between rounds without asking.
+7. **Hand over.** Show the report's Needs you section first. A human review is always required.
 
 ## Files
 
 - `references/run.md`: the runbook. Read it for every run above solo.
 - `references/runtimes.md`: read the section for your runtime only.
 - `references/checks.md`: the standard workers aim for and checkers apply. Agents read it when their prompt names it.
-- `assets/problem.md`, `assets/confirm.md`: templates for the problem statement and the spend confirmation.
+- `assets/context.md`, `assets/problem.md`, `assets/confirm.md`: templates for the context pack, the problem statement and the spend confirmation.
 - `workflows/deepwork.js`: the orchestrator for both runtimes. Launch the shipped file unchanged. When a task needs different instructions, copy it to `<run>/deepwork.js`, edit only its prompt object `P`, and run `selftest --script` on the copy.
 - `scripts/deepwork-host.mjs`: `args`, `estimate`, pair by hand (`prompt`, `record`), `run` through `codex exec`, and `selftest`.
 - `evals/`: offline checks, a fake `codex` for dry runs, and the eval cases.

@@ -2,7 +2,7 @@
 // deepwork host. Runs workflows/deepwork.js (or a run's copy) outside Claude Code, turning each agent() call into a
 // fresh `codex exec`, and drives pair by hand with the script's own planner and merge. Node 18 or newer, standard library only.
 const HELP = `usage: node deepwork-host.mjs <command> [flags]   (references/runtimes.md explains each step)
-  args --run R --mode M --level L [--problem P] [--framing-calls N] [--resume]   write and print <run>/args.json
+  args --run R --mode M --level L [--problem P] [--context C] [--framing-calls N] [--resume]   write and print <run>/args.json
   estimate --mode M --level L [--host] [--framing-calls N]     worst-case calls against the level's ceiling
   prompt sweep --run R --mode investigation --source code|logs|upstream
   prompt worker|runner|checker|writer|auditor --args A       pair by hand
@@ -70,10 +70,20 @@ function frozen(a) {
   throw new Error(`problem.md does not match the confirmed hash (args ${a.problem_hash || 'missing'}, file ${pb.hash}). Run \`args\` and confirm again.`)
 }
 
+// The context pack must exist and hold more than the template's headings and comments.
+export function contextPack(path) {
+  if (!existsSync(path)) throw new Error(`${path} is missing. Gather context first: "Gather context" in references/run.md.`)
+  const text = readFileSync(path, 'utf8')
+  const body = text.replace(/<!--[\s\S]*?-->/g, '').split('\n').filter(l => l.trim() && !/^#/.test(l.trim()))
+  if (!body.length) throw new Error(`${path} has only the template. Fill each section, or write "none found" with where you looked.`)
+  return { path, hash: createHash('sha256').update(text).digest('hex') }
+}
+
 // args.json, built from problem.md so the criteria, approaches and hash are the confirmed ones.
 export function makeArgs(L, f) {
   const run = resolve(f.run), problem = resolve(f.problem || join(run, 'problem.md')), pb = problemBlock(problem)
-  const a = { mode: f.mode, level: f.level, run, problem, skill: SKILL, problem_hash: pb.hash,
+  const cp = contextPack(resolve(f.context || join(run, 'context.md')))
+  const a = { mode: f.mode, level: f.level, run, problem, context: cp.path, context_hash: cp.hash, skill: SKILL, problem_hash: pb.hash,
     framing_calls: Number(f['framing-calls'] || 0), criteria: pb.criteria, approaches: pb.approaches }
   if (f.resume) a.prior = readJson(join(run, 'state.json'))
   const err = L.checkArgs(a, true); if (err) throw new Error(err)
@@ -186,7 +196,8 @@ function loadResult(path, schema, note) {
 export function printPrompt(L, f) {
   const role = f._[0]
   if (role === 'sweep') {
-    const run = resolve(f.run || '.'), a = f.args ? readJson(f.args) : { mode: f.mode, run, problem: resolve(f.problem || join(run, 'problem.md')) }
+    const run = resolve(f.run || '.'), a = f.args ? readJson(f.args) : { mode: f.mode, run, problem: resolve(f.problem || join(run, 'problem.md')),
+      context: contextPack(resolve(f.context || join(run, 'context.md'))).path }
     return { text: L.P.sweep(L.config(Object.assign({ level: 'pair', skill: SKILL }, a), true), f.source || 'code') }
   }
   const { a, cfg, st, p } = pairState(L, f)

@@ -9,6 +9,7 @@ Put the run folder outside every git repository, for example `~/deepwork-runs/<t
 The sweep output is the saved notes of the investigation's read-only hypothesis passes, described under Frame. Probes are one-time tests, listed in `runtimes.md`, that show this machine's runtime handles worktrees, named refs and output folders the way the script expects.
 
 ```
+context.md     the context pack, gathered before framing; every agent reads it first
 problem.md     the problem statement, frozen by its sha256
 args.json      written by `deepwork-host.mjs args`, with that hash
 confirm.md     the spend confirmation
@@ -24,9 +25,24 @@ report.md      the deliverable
 
 `<cid>` is the candidate ID, such as `C2.1` (round 2, assignment 1). `out/<cid>/` holds the runner's saved command output. Every agent reads state from disk when it starts, so a switch between runtimes at a round boundary loses nothing.
 
+## Gather context
+
+Before framing, the session fills `assets/context.md` as `<run>/context.md` from what the team already knows. Agents start with no memory and only the files their prompt names, so anything left out here gets rediscovered at full price or missed. The run that prompted this step stopped on a question its sources already answered.
+
+Work through each source and write what it adds, or "none found" with where you looked:
+
+1. **Repo instructions.** Read `CLAUDE.md`, `AGENTS.md` and any rule files at the root and in the folders the work touches, then the runbooks, ADRs and docs they point to. Follow the runbook for setup, environments and test commands instead of inventing steps, and copy the commands into `problem.md`.
+2. **The knowledge base.** Search the team's knowledge base the way a person would describe the work, then by exact identifiers (ticket keys, flags, file names, error strings), then for the history ("why was X chosen"). Read the top notes and record each with its `last_updated` date. Keep private or unreviewed notes labeled.
+3. **Tickets and pages.** Read the ticket, its epic, its siblings and linked tickets, with their comments, and the planning, design or spike pages they link.
+4. **Prior work.** Earlier branches, PRs, runs, benchmarks and reports on the same problem.
+5. **Data.** Name the dashboards, RUM or log apps, configs and queries that answer the problem's numeric questions. Look up the numbers the criteria will need now, such as traffic shares, rates and sample sizes.
+6. **Reconcile.** Record facts with their sources, contradictions with the source this run trusts, and gaps with where you looked.
+
+The session does this with its own tools, so it costs no agent calls. `deepwork-host.mjs args` refuses to start without a `context.md` that has more than the template. Point the "Context to read first" section of `problem.md` at it.
+
 ## Frame
 
-Fill `assets/problem.md` with the human. Leave technique hints out, so workers choose the method.
+Fill `assets/problem.md` with the human, using the context pack. Leave technique hints out, so workers choose the method. A gap in the context pack becomes a stop-and-ask question only when the work cannot proceed without its answer.
 
 Starting approaches are claims a test could prove wrong, each with a stable ID. An approach is one candidate answer, root-cause hypothesis or implementation plan. Use `kind: "disprove"` for a disproof hunt, an approach that tries to rule another one out, and name its target in `disproves`.
 

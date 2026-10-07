@@ -91,14 +91,14 @@ const utf8Len = s => Array.from(String(s)).reduce((n, ch) => n + [0x80, 0x800, 0
 
 function config(A, host) {
   const runId = String(A.run || 'run').split('/').filter(Boolean).pop().replace(/[^A-Za-z0-9._-]+/g, '-')
-  return { mode: A.mode, level: A.level, run: A.run, problem: A.problem, skill: A.skill, host: !!host, runId, L: LEVELS[A.level] }
+  return { mode: A.mode, level: A.level, run: A.run, problem: A.problem, context: A.context, skill: A.skill, host: !!host, runId, L: LEVELS[A.level] }
 }
 
 function checkArgs(A, host) {
   if (!A || !MODES.includes(A.mode)) return 'args.mode must be research, investigation or implementation'
   if (!LEVELS[A.level]) return 'args.level must be pair, team or full'
   if (A.level === 'pair' && !host) return 'pair runs by hand in Claude Code (references/runtimes.md)'
-  for (const k of ['run', 'problem', 'skill', 'problem_hash']) if (!A[k]) return `args.${k} is required`
+  for (const k of ['run', 'problem', 'context', 'skill', 'problem_hash']) if (!A[k]) return `args.${k} is required`
   if (!Array.isArray(A.criteria) || !mustIds(A.criteria).length) return 'args.criteria needs at least one must criterion'
   const weak = A.criteria.filter(c => c.tier === 'must' && c.cannot_fail).map(c => c.id)
   if (weak.length) return `must criteria marked cannot_fail: ${weak.join(', ')}. Build a check that can fail as its own pair task,`
@@ -335,7 +335,8 @@ function reportCtx(st, cfg) {
 const SOURCES = { code: 'the code and its history', logs: 'logs, metrics and traces', upstream: 'upstream issues, changelogs and docs' }
 const head = (cfg, role) => [
   `You are the ${role} in a deepwork ${cfg.mode} run. You start with no context from earlier agents.`,
-  `Problem statement, frozen; read it first: ${cfg.problem}. Run folder: ${cfg.run}.`,
+  `Context pack, gathered before the run: ${cfg.context}. Read it first, and look there and in the sources it names before you ask the human.`,
+  `Problem statement, frozen; read it next: ${cfg.problem}. Run folder: ${cfg.run}.`,
   `Ledger, the run's record, with its process warnings: ${cfg.run}/ledger.md (it does not exist before round 2).`,
   `Rules for you: ${cfg.skill}/references/checks.md, sections "Shared rules", "Result fields" and "${cfg.mode[0].toUpperCase() + cfg.mode.slice(1)}".`,
   'If an instruction stops you, name the file and quote the line. Return only the structured result.',
